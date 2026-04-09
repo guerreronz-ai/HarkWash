@@ -21,7 +21,7 @@ st.set_page_config(
 )
 # ==================== LOGO HARK ====================
 st.logo(
-    "Hark.PNG",          # ← Nombre exacto del archivo que subiste
+    "hark_logo.png",          # ← Nombre exacto del archivo que subiste
     size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
 )
 # ==================== CSS Profesional ====================
