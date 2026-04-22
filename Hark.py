@@ -21,8 +21,8 @@ st.set_page_config(
 )
 # ==================== LOGO HARK ====================
 st.logo(
-    "hark_logo.png",          
-    size="large"         
+    "hark_logo.png",          # ← Nombre exacto del archivo que subiste
+    size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
 )
 
 # ==================== CSS ====================
@@ -164,7 +164,7 @@ def init_database():
             is_urgent INTEGER DEFAULT 0, branch_id INTEGER REFERENCES branches(id)
         )''')
 
-        # Corrección de columnas
+        # Corrección de columnas - Sin commit intermedio
         try:
             c.execute("ALTER TABLE vehicles ALTER COLUMN tag_number DROP NOT NULL")
             c.execute("ALTER TABLE vehicles ALTER COLUMN required_day DROP NOT NULL")
@@ -175,12 +175,12 @@ def init_database():
         except Exception:
             pass  # Ignorar errores si las columnas ya existen
 
-        # Datos iniciales - Branches GN
+        # Datos iniciales - Branches
         c.execute("SELECT COUNT(*) as total FROM branches")
         if c.fetchone()['total'] == 0:
             c.execute("INSERT INTO branches (name) VALUES ('BMW Arlington'), ('Five Star Subaru'), ('Vandergriff Acura')")
 
-        # Datos iniciales - Users GN
+        # Datos iniciales - Users
         c.execute("SELECT COUNT(*) as total FROM users")
         if c.fetchone()['total'] == 0:
             c.execute("SELECT id, name FROM branches")
@@ -204,13 +204,13 @@ def init_database():
                 users_data
             )
         
-        # Single commit al final GN
+        # Single commit al final
         conn.commit()
 
 # ==================== CONSTANTES ====================
 SERVICES_LIST = [
     "Service Wash", "Loaner", "Photo", "Full Detail the customer",
-    "Zaktek", "Show Room", "Full Detail for line", "Sold use car", "Sold new car"
+    "Zaktek", "Show Room", "Full Detail for line", "Sold Detail","Sold use car", "Sold new car"
 ]
 
 SERVICE_FIELD_REQUIREMENTS = {
@@ -221,6 +221,7 @@ SERVICE_FIELD_REQUIREMENTS = {
     "Zaktek": "both",
     "Show Room": "vin",
     "Full Detail for line": "vin",
+    "Sold Detail": "vin",
     "Sold use car": "vin",
     "Sold new car": "vin"
 }
@@ -279,7 +280,7 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
         hours_until_deadline = (req_date - now_dallas).total_seconds() / 3600
         
-        if service_clean in ["Full Detail the customer", "Zaktek", "Sold new car", "Sold use car"]:
+        if service_clean in ["Full Detail the customer", "Zaktek", "Sold Detail", "Sold new car", "Sold use car"]:
             if hours_until_deadline > 2.0:
                 return "#28a745", "✅ Ample Time", f"{hours_until_deadline:.1f}h until deadline"
             elif hours_until_deadline > 1.0:
@@ -336,7 +337,7 @@ def login_page():
                 else:
                     st.error("❌ Invalid credentials")
 
-    # ==================== BOTÓN DE INGRESO PÚBLICO  ====================
+    # ==================== BOTÓN DE INGRESO PÚBLICO (FUERA del formulario) ====================
     st.divider()
     st.markdown("### Do you need to bring in a vehicle??")
     if st.button("🚦 Start without login", 
@@ -378,7 +379,7 @@ def page_ingress():
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.time_input("Required Time", value=dt_time(9, 0), key="time_in")
-                #gn
+                
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
         
         urgent = st.checkbox("🚨 Mark as URGENT (Maximum Priority)")
@@ -396,7 +397,7 @@ def page_ingress():
                 if not tag.strip():
                     st.error("❌ This service requires a TAG Number")
                     st.stop()
-            #GN
+            
             dallas_tz = ZoneInfo("America/Chicago")
             dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %H:%M")
             
