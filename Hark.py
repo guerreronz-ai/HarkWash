@@ -24,45 +24,60 @@ st.logo(
     "hark_logo.png",          # ← Nombre exacto del archivo que subiste
     size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
 )
-# ==================== CSS Profesional ====================
+# ==================== CSS  ====================
+
 st.markdown("""
 <style>
-.stApp {
-    background-color: #f4f6f9 !important;
-}
-h1, h2, h3 {
-    color: #1e293b !important;
-    font-weight: 700;
-}
-.sidebar .sidebar-content {
-    background-color: #ffffff !important;
-    border-right: 1px solid #e2e8f0 !important;
-}
-.stButton>button {
-    background: linear-gradient(90deg, #2563eb, #1d4ed8) !important;
-    color: white !important;
-    border-radius: 6px !important;
-    font-weight: 600 !important;
-    border: none !important;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.stButton>button:hover {
-    background: linear-gradient(90deg, #1d4ed8, #1e40af) !important;
-}
-.stExpander {
-    background-color: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 10px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-.stTextInput input, 
-.stSelectbox select, 
-.stTextArea textarea {
-    background-color: #f8fafc !important;
-    border: 1px solid #cbd5e1 !important;
-    color: #0f172a !important;
-    border-radius: 6px !important;
-}
+    /* Fondo claro forzado */
+    .stApp {
+        background-color: #f4f6f9 !important;
+    }
+    
+    /* Ocultar completamente el selector de tema (System/Light/Dark) */
+    button[aria-label="View settings"],
+    section[data-testid="stSidebar"] button[kind="secondary"] {
+        display: none !important;
+    }
+    
+    /* Ocultar el menú de configuración del header */
+    header > div > div:nth-of-type(2) {
+        display: none !important;
+    }
+    
+    /* Estilos profesionales que ya tenías */
+    h1, h2, h3 {
+        color: #1e293b !important;
+        font-weight: 700;
+    }
+    .sidebar .sidebar-content {
+        background-color: #ffffff !important;
+        border-right: 1px solid #e2e8f0 !important;
+    }
+    .stButton>button {
+        background: linear-gradient(90deg, #2563eb, #1d4ed8) !important;
+        color: white !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+        border: none !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .stButton>button:hover {
+        background: linear-gradient(90deg, #1d4ed8, #1e40af) !important;
+    }
+    .stExpander {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 10px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .stTextInput input, 
+    .stSelectbox select, 
+    .stTextArea textarea {
+        background-color: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+        border-radius: 6px !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
