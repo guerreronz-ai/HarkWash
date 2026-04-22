@@ -21,8 +21,8 @@ st.set_page_config(
 )
 # ==================== LOGO HARK ====================
 st.logo(
-    "hark_logo.png",          # ← Nombre exacto del archivo que subiste
-    size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
+    "hark_logo.png",          
+    size="large"         
 )
 
 # ==================== CSS ====================
@@ -136,11 +136,11 @@ def get_db():
     finally:
         if conn:
             conn.close()
-
 def init_database():
     with get_db() as conn:
         c = conn.cursor()
         
+        # Creación de tablas
         c.execute('''CREATE TABLE IF NOT EXISTS branches (
             id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL, active INTEGER DEFAULT 1
         )''')
@@ -164,22 +164,28 @@ def init_database():
             is_urgent INTEGER DEFAULT 0, branch_id INTEGER REFERENCES branches(id)
         )''')
 
+        # Corrección de columnas
         try:
             c.execute("ALTER TABLE vehicles ALTER COLUMN tag_number DROP NOT NULL")
             c.execute("ALTER TABLE vehicles ALTER COLUMN required_day DROP NOT NULL")
             c.execute("ALTER TABLE vehicles ALTER COLUMN required_time DROP NOT NULL")
-            conn.commit()
+            c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS brand TEXT")
+            c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS model TEXT")
+            c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS responsible_name TEXT")
         except Exception:
-            pass
+            pass  # Ignorar errores si las columnas ya existen
 
+        # Datos iniciales - Branches GN
         c.execute("SELECT COUNT(*) as total FROM branches")
         if c.fetchone()['total'] == 0:
             c.execute("INSERT INTO branches (name) VALUES ('BMW Arlington'), ('Five Star Subaru'), ('Vandergriff Acura')")
 
+        # Datos iniciales - Users GN
         c.execute("SELECT COUNT(*) as total FROM users")
         if c.fetchone()['total'] == 0:
             c.execute("SELECT id, name FROM branches")
-            branches_map = {row['name']: row['id'] for row in c.fetchall()}
+            branches = c.fetchall()
+            branches_map = {row['name']: row['id'] for row in branches}
             bmw_id = branches_map.get('BMW Arlington')
             acura_id = branches_map.get('Vandergriff Acura')
             subaru_id = branches_map.get('Five Star Subaru')
@@ -193,11 +199,12 @@ def init_database():
                 ('Super2', hashlib.sha256('Super123'.encode()).hexdigest(), 2, 'Supervisor Central', acura_id),
                 ('Super3', hashlib.sha256('Super123'.encode()).hexdigest(), 2, 'Supervisor South', subaru_id),
             ]
-            c.executemany("""
-                INSERT INTO users (username, password, level, full_name, branch_id) 
-                VALUES (%s, %s, %s, %s, %s)
-            """, users_data)
+            c.executemany(
+                "INSERT INTO users (username, password, level, full_name, branch_id) VALUES (%s, %s, %s, %s, %s)", 
+                users_data
+            )
         
+        # Single commit al final GN
         conn.commit()
 
 # ==================== CONSTANTES ====================
@@ -329,7 +336,7 @@ def login_page():
                 else:
                     st.error("❌ Invalid credentials")
 
-    # ==================== BOTÓN DE INGRESO PÚBLICO (FUERA del formulario) ====================
+    # ==================== BOTÓN DE INGRESO PÚBLICO  ====================
     st.divider()
     st.markdown("### Do you need to bring in a vehicle??")
     if st.button("🚦 Start without login", 
@@ -371,7 +378,7 @@ def page_ingress():
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.time_input("Required Time", value=dt_time(9, 0), key="time_in")
-                
+                #gn
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
         
         urgent = st.checkbox("🚨 Mark as URGENT (Maximum Priority)")
@@ -389,7 +396,7 @@ def page_ingress():
                 if not tag.strip():
                     st.error("❌ This service requires a TAG Number")
                     st.stop()
-            
+            #GN
             dallas_tz = ZoneInfo("America/Chicago")
             dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %H:%M")
             
@@ -556,20 +563,22 @@ def page_pending():
                 key=f"editor_{svc.replace(' ', '_')}"
             )
 
-            if st.button("🚀 Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
-                selected_rows = edited_df[edited_df["Complete"] == True]
+        if st.button("🚀 Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
+            selected_rows = edited_df[edited_df["Complete"] == True]
+            
+            if selected_rows.empty:
+                st.warning("⚠️ You have not selected a vehicle.")
+            else:
+                count = 0
+                dallas_tz = ZoneInfo("America/Chicago")
+                delivery_time = datetime.now(dallas_tz).strftime("%Y-%m-%d %H:%M")
                 
-                if selected_rows.empty:
-                    st.warning("⚠️ You have not selected a vehicle.")
-                else:
-                    count = 0
+                try:
                     with get_db() as conn2:
                         c2 = conn2.cursor()
-                        dallas_tz = ZoneInfo("America/Chicago")
-                        delivery_time = datetime.now(dallas_tz).strftime("%Y-%m-%d %H:%M")
-                        
                         for idx in selected_rows.index:
-                            original_id = df.loc[idx, '_id']
+                            # ← IMPORTANTE: Convertir a int normal de Python
+                            original_id = int(df.loc[idx, '_id'])
                             c2.execute("""
                                 UPDATE vehicles 
                                 SET status = 'Delivered', delivery_date = %s, handled_by = %s 
@@ -579,6 +588,8 @@ def page_pending():
                     
                     st.success(f"✅ {count} Vehicle(s) finished correctly.")
                     st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Error updating vehicles: {e}")    
 
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
