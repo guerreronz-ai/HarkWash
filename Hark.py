@@ -768,13 +768,13 @@ def page_reports():
             st.info("📭 There are no recently delivered vehicles to reverse.")
 
 def page_users():
-    st.markdown("<h2>👤 User Management</h2>", unsafe_allow_html=True)
-    
+    st.markdown("<h1> User Management</h1>", unsafe_allow_html=True)
     if st.session_state.level != 3:
         st.warning("🔒 Access denied. Only Administrators can manage users.")
         return
 
-    with st.expander("➕ Add New User", expanded=False):
+    # ==================== CREAR NUEVO USUARIO ====================
+    with st.expander("➕ Add New User", expanded=True):
         with st.form("create_user_form"):
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -789,94 +789,168 @@ def page_users():
                     c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
                     branches = c.fetchall()
                     branch_opts = {b['name']: b['id'] for b in branches}
-                selected_branch = st.selectbox("Assign Agency", list(branch_opts.keys()))
+                
+                # Si es Admin, no asignar agencia (Global)
+                if new_level == 3:
+                    st.info(" Admin users are Global/Admin")
+                    selected_branch = None
+                else:
+                    selected_branch_name = st.selectbox("Assign Agency", list(branch_opts.keys()))
+                    selected_branch = branch_opts[selected_branch_name]
 
             if st.form_submit_button("💾 Create User", use_container_width=True, type="primary"):
                 if not new_username or not new_pass or not new_fullname:
                     st.error("❌ All fields are required.")
                 else:
                     hashed = hashlib.sha256(new_pass.encode()).hexdigest()
-                    branch_id = branch_opts[selected_branch]
                     try:
                         with get_db() as conn:
                             c = conn.cursor()
                             c.execute("""
                                 INSERT INTO users (username, password, level, full_name, branch_id)
                                 VALUES (%s, %s, %s, %s, %s)
-                            """, (new_username.strip(), hashed, new_level, new_fullname.strip(), branch_id))
-                        st.success(f"✅ User '{new_username}' successfully created in **{selected_branch}**.")
+                            """, (new_username.strip(), hashed, new_level, new_fullname.strip(), selected_branch))
+                        st.success(f"✅ User '{new_username}' successfully created.")
                         st.rerun()
                     except Exception as e:
                         st.error(f"❌ Error creating user: {e}")
 
     st.divider()
-    st.subheader("📋 Registered Users")
 
-    with get_db() as conn:
-        c = conn.cursor()
-        c.execute("""
-            SELECT u.id, u.username, u.level, u.full_name,
-                   COALESCE(b.name, 'Global/Admin') as branch_name
-            FROM users u
-            LEFT JOIN branches b ON u.branch_id = b.id
-            ORDER BY u.level DESC, u.username
-        """)
-        users_data = c.fetchall()
+    # ==================== VER USUARIOS ====================
+    with st.expander(" Registered Users List", expanded=False):
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT u.id, u.username, u.level, u.full_name,
+                       COALESCE(b.name, 'Global/Admin') as branch_name,
+                       u.branch_id
+                FROM users u
+                LEFT JOIN branches b ON u.branch_id = b.id
+                ORDER BY u.level DESC, u.username
+            """)
+            users_data = c.fetchall()
 
-    if users_data:
-        df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name'])
-        df['level'] = df['level'].map({1: '👤 Agent', 2: '🛡️ Supervisor', 3: '👑 Admin'})
-        st.dataframe(df, hide_index=True, use_container_width=True)
+        if users_data:
+            df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name', 'branch_id'])
+            df['level'] = df['level'].map({1: '👤 Agent', 2: '🛡️ Supervisor', 3: '👑 Admin'})
+            st.dataframe(df[['id', 'username', 'level', 'full_name', 'branch_name']], hide_index=True, use_container_width=True)
+        else:
+            st.info("📭 No users found.")
 
-        st.divider()
-        st.subheader("🔧 User Management")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("### 🔑 Reset Password")
-            user_list = {f"{u['username']} ({u['full_name']})": u['id'] for u in users_data}
-            selected_user = st.selectbox("Select User", list(user_list.keys()))
-            new_password = st.text_input("New Password", type="password", key="reset_pass")
+    # ==================== EDITAR AGENCIA DE USUARIO ====================
+    with st.expander("✏️ Edit User - Change Agency", expanded=False):
+        # Recargar datos para el selector
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT u.id, u.username, u.level, u.full_name,
+                       COALESCE(b.name, 'Global/Admin') as branch_name, u.branch_id
+                FROM users u LEFT JOIN branches b ON u.branch_id = b.id
+                ORDER BY u.username
+            """)
+            users_data = c.fetchall()
             
-            if st.button("🔄 Update Password", use_container_width=True):
-                if new_password:
-                    hashed = hashlib.sha256(new_password.encode()).hexdigest()
-                    user_id = user_list[selected_user]
-                    with get_db() as conn:
-                        c = conn.cursor()
-                        c.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, user_id))
-                    st.success(f"✅ Updated password for {selected_user}")
-                    st.rerun()
-                else:
-                    st.error("❌ Enter a password")
-        
-        with col2:
-            st.markdown("### 🗑️ Delete User")
-            delete_list = {f"{u['username']} - {u['full_name']} (Level {u['level']})": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
+            user_dict = {f"{u['username']} - {u['full_name']} ({u['branch_name']})": u for u in users_data if u['id'] != st.session_state.user_id}
             
-            if delete_list:
-                selected_delete = st.selectbox("Select User to Delete", list(delete_list.keys()))
-                confirm_delete = st.checkbox("Confirm deletion", key="confirm_del")
+            if user_dict:
+                selected_user_key = st.selectbox("Select User to Edit", list(user_dict.keys()))
+                selected_user = user_dict[selected_user_key]
                 
-                if st.button("🗑️ Delete User", use_container_width=True, disabled=not confirm_delete):
-                    user_id = delete_list[selected_delete]
-                    with get_db() as conn:
-                        c = conn.cursor()
-                        c.execute("DELETE FROM users WHERE id = %s", (user_id,))
-                    st.success(f"✅ User {selected_delete} Deleted")
-                    st.rerun()
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.markdown(f"**Current Agency:** {selected_user['branch_name']}")
+                
+                with col2:
+                    c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
+                    branches = c.fetchall()
+                    branch_opts = {b['name']: b['id'] for b in branches}
+                    
+                    # Permitir volver a Global/Admin si el usuario es Admin
+                    if selected_user['level'] == 3:
+                        branch_options_edit = {"🌐 Global/Admin": None}
+                        branch_options_edit.update(branch_opts)
+                    else:
+                        branch_options_edit = branch_opts
+                    
+                    new_branch_name = st.selectbox("New Agency", list(branch_options_edit.keys()), key="edit_branch_select")
+                    new_branch_id = branch_options_edit[new_branch_name]
+                    
+                    if st.button("💾 Update Agency", type="primary"):
+                        if new_branch_id != selected_user['branch_id']:
+                            with get_db() as conn2:
+                                c2 = conn2.cursor()
+                                c2.execute("UPDATE users SET branch_id = %s WHERE id = %s", (new_branch_id, selected_user['id']))
+                            st.success(f"✅ {selected_user['username']}'s agency updated to **{new_branch_name}**")
+                            st.rerun()
+                        else:
+                            st.info("ℹ️ Same agency selected.")
             else:
-                st.info("ℹ️ There are no other users to delete.")
-    else:
-        st.info("📭 There are no registered users.")
+                st.info("ℹ️ No other users to edit.")
 
-    # ==========================================
-    # 🏢 GESTIÓN DE AGENCIAS (Solo Admin)
-    # ==========================================
     st.divider()
-    st.subheader("🏢 Agency Management")
-    with st.expander("✏️ Edit Agency Names & Status", expanded=False):
+
+    # ==================== ACCIONES AVANZADAS ====================
+    with st.expander("🔧 Advanced Actions (Password / Delete)", expanded=False):
+        with get_db() as conn:
+            c = conn.cursor()
+            c.execute("""
+                SELECT u.id, u.username, u.level, u.full_name,
+                       COALESCE(b.name, 'Global/Admin') as branch_name
+                FROM users u LEFT JOIN branches b ON u.branch_id = b.id
+                ORDER BY u.username
+            """)
+            users_data = c.fetchall()
+
+        if users_data:
+            user_list = {f"{u['username']} ({u['full_name']})": u for u in users_data if u['id'] != st.session_state.user_id}
+            
+            if user_list:
+                col1, col2 = st.columns(2)
+                
+                # Columna 1: Reset Password
+                with col1:
+                    st.markdown("### 🔑 Reset Password")
+                    selected_user_pass = st.selectbox("Select User", list(user_list.keys()), key="reset_pass_user")
+                    new_password = st.text_input("New Password", type="password", key="reset_pass_input")
+                    
+                    if st.button("🔄 Update Password", use_container_width=True):
+                        if new_password:
+                            hashed = hashlib.sha256(new_password.encode()).hexdigest()
+                            user_id = user_list[selected_user_pass]['id']
+                            with get_db() as conn2:
+                                c2 = conn2.cursor()
+                                c2.execute("UPDATE users SET password = %s WHERE id = %s", (hashed, user_id))
+                            st.success(f"✅ Password updated for {selected_user_pass}")
+                            st.rerun()
+                        else:
+                            st.error("❌ Enter a password")
+                
+                # Columna 2: Delete User
+                with col2:
+                    st.markdown("### 🗑️ Delete User")
+                    delete_list = {f"{u['username']} - {u['full_name']}": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
+                    
+                    if delete_list:
+                        selected_delete = st.selectbox("Select User to Delete", list(delete_list.keys()), key="delete_user_select")
+                        confirm_delete = st.checkbox("Confirm deletion", key="confirm_del_checkbox")
+                        
+                        if st.button("️ Delete User", use_container_width=True, disabled=not confirm_delete):
+                            user_id = delete_list[selected_delete]
+                            with get_db() as conn2:
+                                c2 = conn2.cursor()
+                                c2.execute("DELETE FROM users WHERE id = %s", (user_id,))
+                            st.success(f"✅ User {selected_delete} Deleted")
+                            st.rerun()
+                    else:
+                        st.info("ℹ️ No other users to delete.")
+        else:
+            st.info("📭 No users found.")
+
+    st.divider()
+    
+    # ==================== GESTIÓN DE AGENCIAS ====================
+    with st.expander("🏢 Agency Management", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
             c.execute("SELECT id, name, active FROM branches ORDER BY id")
@@ -887,33 +961,21 @@ def page_users():
                 col_a, col_b, col_c = st.columns([4, 2, 1])
                 
                 with col_a:
-                    new_name = st.text_input(
-                        f"Agency #{b['id']}", 
-                        value=b['name'], 
-                        key=f"branch_name_{b['id']}"
-                    )
+                    new_name = st.text_input(f"Agency #{b['id']}", value=b['name'], key=f"branch_name_{b['id']}")
                     
                 with col_b:
                     if st.button("💾 Update Name", key=f"upd_branch_{b['id']}"):
                         new_name_clean = new_name.strip()
-                        if not new_name_clean:
-                            st.warning("❌ Name cannot be empty.")
-                        elif new_name_clean == b['name']:
-                            st.info("ℹ️ Name unchanged.")
-                        else:
+                        if new_name_clean and new_name_clean != b['name']:
                             try:
                                 with get_db() as conn2:
                                     c2 = conn2.cursor()
                                     c2.execute("UPDATE branches SET name = %s WHERE id = %s", (new_name_clean, b['id']))
-                                st.success(f"✅ Renamed: '{b['name']}' → '{new_name_clean}'")
+                                st.success(f"✅ Renamed to '{new_name_clean}'")
                                 st.rerun()
                             except Exception as e:
-                                err = str(e).lower()
-                                if "duplicate key" in err or "unique" in err:
-                                    st.error(f"❌ Name '{new_name_clean}' already exists.")
-                                else:
-                                    st.error(f"❌ DB Error: {e}")
-                                    
+                                st.error(f"❌ Error: {e}")
+                    
                 with col_c:
                     is_active = b['active'] == 1
                     new_active = st.checkbox("Active", value=is_active, key=f"branch_act_{b['id']}")
@@ -925,7 +987,7 @@ def page_users():
                             st.success(f"✅ Status updated for {b['name']}")
                             st.rerun()
         else:
-            st.info("📭 No agencies found in database.")
+            st.info("📭 No agencies found.")
 #==================================GUESS=========================================
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
