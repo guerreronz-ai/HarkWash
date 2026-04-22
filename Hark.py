@@ -192,6 +192,7 @@ def init_database():
 
             users_data = [
                 ('SuperSU', hashlib.sha256('Krieger1'.encode()).hexdigest(), 3, 'Administrator', None),
+                ('Admin', hashlib.sha256('Admin123*'.encode()).hexdigest(), 3, 'Administrator', None),
                 ('User1', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent bmw', bmw_id),
                 ('User2', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent Central', acura_id),
                 ('User3', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent South', subaru_id),
