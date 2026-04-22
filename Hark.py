@@ -26,26 +26,24 @@ st.logo(
 )
 
 # ==================== CSS ====================
+# ==================== CSS Profesional ====================
 st.markdown("""
 <style>
 .stApp {
     background-color: #f4f6f9 !important;
 }
 
-/* FORZAR MODO LIGHT - Ocultar selector de tema */
-.stApp [data-testid="stToolbar"] {
-    display: none !important;
-}
-
+/* OCULTAR SOLO EL MENÚ DE TRES PUNTOS (Theme Selector) */
 #MainMenu {
     visibility: hidden !important;
 }
 
+/* OCULTAR FOOTER */
 footer {
     visibility: hidden !important;
 }
 
-/* Prevenir cambio a dark mode */
+/* Forzar fondo claro en sidebar */
 [data-testid="stSidebar"] {
     background-color: #ffffff !important;
 }
