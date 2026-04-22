@@ -768,13 +768,16 @@ def page_reports():
             st.info("📭 There are no recently delivered vehicles to reverse.")
 
 def page_users():
-    st.markdown("<h1> User Management</h1>", unsafe_allow_html=True)
+    st.markdown("<h1>👤 User & Agency Management</h1>", unsafe_allow_html=True)
     if st.session_state.level != 3:
         st.warning("🔒 Access denied. Only Administrators can manage users.")
         return
 
-    # ==================== CREAR NUEVO USUARIO ====================
-    with st.expander("➕ Add New User", expanded=True):
+    # ====================  GESTIÓN DE USUARIOS ====================
+    st.subheader("👤 User Management")
+
+    # --- CREAR NUEVO USUARIO ---
+    with st.expander("➕ Add New User", expanded=False):
         with st.form("create_user_form"):
             col1, col2, col3 = st.columns(3)
             with col1:
@@ -784,6 +787,7 @@ def page_users():
                 new_fullname = st.text_input("Full Name", placeholder="John Doe")
                 new_level = st.selectbox("Access Level", [1, 2, 3], format_func=lambda x: {1: "👤 Agent", 2: "🛡️ Supervisor", 3: "👑 Admin"}[x])
             with col3:
+                # Obtener agencias actualizadas (incluyendo las recién creadas)
                 with get_db() as conn:
                     c = conn.cursor()
                     c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
@@ -792,7 +796,7 @@ def page_users():
                 
                 # Si es Admin, no asignar agencia (Global)
                 if new_level == 3:
-                    st.info(" Admin users are Global/Admin")
+                    st.info("🌐 Admin users are Global/Admin")
                     selected_branch = None
                 else:
                     selected_branch_name = st.selectbox("Assign Agency", list(branch_opts.keys()))
@@ -817,8 +821,8 @@ def page_users():
 
     st.divider()
 
-    # ==================== VER USUARIOS ====================
-    with st.expander(" Registered Users List", expanded=False):
+    # --- VER LISTA DE USUARIOS ---
+    with st.expander("📋 Registered Users List", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
             c.execute("""
@@ -833,12 +837,12 @@ def page_users():
 
         if users_data:
             df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name', 'branch_id'])
-            df['level'] = df['level'].map({1: '👤 Agent', 2: '🛡️ Supervisor', 3: '👑 Admin'})
+            df['level'] = df['level'].map({1: ' Agent', 2: '🛡️ Supervisor', 3: '👑 Admin'})
             st.dataframe(df[['id', 'username', 'level', 'full_name', 'branch_name']], hide_index=True, use_container_width=True)
         else:
             st.info("📭 No users found.")
 
-    # ==================== EDITAR AGENCIA DE USUARIO ====================
+    # --- EDITAR AGENCIA DE USUARIO ---
     with st.expander("✏️ Edit User - Change Agency", expanded=False):
         # Recargar datos para el selector
         with get_db() as conn:
@@ -890,7 +894,7 @@ def page_users():
 
     st.divider()
 
-    # ==================== ACCIONES AVANZADAS ====================
+    # --- ACCIONES AVANZADAS (Password / Delete) ---
     with st.expander("🔧 Advanced Actions (Password / Delete)", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
@@ -924,7 +928,7 @@ def page_users():
                             st.success(f"✅ Password updated for {selected_user_pass}")
                             st.rerun()
                         else:
-                            st.error("❌ Enter a password")
+                            st.error(" Enter a password")
                 
                 # Columna 2: Delete User
                 with col2:
@@ -935,7 +939,7 @@ def page_users():
                         selected_delete = st.selectbox("Select User to Delete", list(delete_list.keys()), key="delete_user_select")
                         confirm_delete = st.checkbox("Confirm deletion", key="confirm_del_checkbox")
                         
-                        if st.button("️ Delete User", use_container_width=True, disabled=not confirm_delete):
+                        if st.button("🗑️ Delete User", use_container_width=True, disabled=not confirm_delete):
                             user_id = delete_list[selected_delete]
                             with get_db() as conn2:
                                 c2 = conn2.cursor()
@@ -945,12 +949,40 @@ def page_users():
                     else:
                         st.info("ℹ️ No other users to delete.")
         else:
-            st.info("📭 No users found.")
+            st.info(" No users found.")
+    # ==================== GESTIÓN DE AGENCIAS ====================
+    st.subheader("🏢 Agency Management")
+    
+    # --- AGREGAR NUEVA AGENCIA ---
+    with st.expander("➕ Add New Agency", expanded=True):
+        with st.form("add_branch_form"):
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                new_branch_name = st.text_input("Agency Name", placeholder="e.g. BMW Downtown")
+            with col2:
+                is_active_default = st.checkbox("Active", value=True)
+            
+            if st.form_submit_button("💾 Create Agency", use_container_width=True, type="primary"):
+                if not new_branch_name.strip():
+                    st.error("❌ Name is required.")
+                else:
+                    try:
+                        with get_db() as conn:
+                            c = conn.cursor()
+                            c.execute("INSERT INTO branches (name, active) VALUES (%s, %s)", 
+                                      (new_branch_name.strip(), 1 if is_active_default else 0))
+                        st.success(f"✅ Agency '{new_branch_name}' created successfully!")
+                        st.rerun()
+                    except Exception as e:
+                        if "duplicate key" in str(e).lower() or "unique" in str(e).lower():
+                            st.error(f"❌ Agency '{new_branch_name}' already exists.")
+                        else:
+                            st.error(f"❌ Error: {e}")
 
     st.divider()
-    
-    # ==================== GESTIÓN DE AGENCIAS ====================
-    with st.expander("🏢 Agency Management", expanded=False):
+
+    # --- EDITAR AGENCIAS EXISTENTES ---
+    with st.expander("✏️ Edit Existing Agencies", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
             c.execute("SELECT id, name, active FROM branches ORDER BY id")
@@ -958,7 +990,7 @@ def page_users():
 
         if branches:
             for b in branches:
-                col_a, col_b, col_c = st.columns([4, 2, 1])
+                col_a, col_b, col_c, col_d = st.columns([4, 2, 1, 1])
                 
                 with col_a:
                     new_name = st.text_input(f"Agency #{b['id']}", value=b['name'], key=f"branch_name_{b['id']}")
@@ -966,19 +998,29 @@ def page_users():
                 with col_b:
                     if st.button("💾 Update Name", key=f"upd_branch_{b['id']}"):
                         new_name_clean = new_name.strip()
-                        if new_name_clean and new_name_clean != b['name']:
+                        if not new_name_clean:
+                            st.warning("❌ Name cannot be empty.")
+                        elif new_name_clean == b['name']:
+                            st.info("ℹ️ Name unchanged.")
+                        else:
                             try:
                                 with get_db() as conn2:
                                     c2 = conn2.cursor()
                                     c2.execute("UPDATE branches SET name = %s WHERE id = %s", (new_name_clean, b['id']))
-                                st.success(f"✅ Renamed to '{new_name_clean}'")
+                                st.success(f"✅ Renamed: '{b['name']}' → '{new_name_clean}'")
                                 st.rerun()
                             except Exception as e:
-                                st.error(f"❌ Error: {e}")
-                    
+                                err = str(e).lower()
+                                if "duplicate key" in err or "unique" in err:
+                                    st.error(f"❌ Name '{new_name_clean}' already exists.")
+                                else:
+                                    st.error(f"❌ DB Error: {e}")
+                                
                 with col_c:
                     is_active = b['active'] == 1
                     new_active = st.checkbox("Active", value=is_active, key=f"branch_act_{b['id']}")
+                    
+                with col_d:
                     if st.button("💾 Status", key=f"stat_branch_{b['id']}"):
                         if new_active != is_active:
                             with get_db() as conn2:
@@ -987,7 +1029,9 @@ def page_users():
                             st.success(f"✅ Status updated for {b['name']}")
                             st.rerun()
         else:
-            st.info("📭 No agencies found.")
+            st.info("📭 No agencies found in database.")
+
+    st.divider()
 #==================================GUESS=========================================
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
