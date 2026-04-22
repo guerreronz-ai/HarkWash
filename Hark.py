@@ -445,7 +445,7 @@ def page_pending():
     if st.session_state.level < 3:
         st.info(f"📍 Agency: **{st.session_state.branch_name}** | 👤 {st.session_state.full_name}")
     else:
-        st.info(f"👑 Administrator Mode - Viewing all agencies | 👤 {st.session_state.full_name}")
+        st.info(f"⚙️ Administrator Mode - Viewing all agencies | 👤 {st.session_state.full_name}")
 
     col1, col2 = st.columns([3, 1])
     with col1:
@@ -797,7 +797,7 @@ def page_users():
                 new_pass = st.text_input("Password", type="password")
             with col2:
                 new_fullname = st.text_input("Full Name", placeholder="John Doe")
-                new_level = st.selectbox("Access Level", [1, 2, 3], format_func=lambda x: {1: "👤 Agent", 2: "🛡️ Supervisor", 3: "👑 Admin"}[x])
+                new_level = st.selectbox("Access Level", [1, 2, 3], format_func=lambda x: {1: "👤 Agent", 2: "🛡️ Supervisor", 3: "⚙️ Admin"}[x])
             with col3:
                 # Obtener agencias actualizadas (incluyendo las recién creadas)
                 with get_db() as conn:
@@ -849,7 +849,7 @@ def page_users():
 
         if users_data:
             df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name', 'branch_id'])
-            df['level'] = df['level'].map({1: ' Agent', 2: '🛡️ Supervisor', 3: '👑 Admin'})
+            df['level'] = df['level'].map({1: ' Agent', 2: '🛡️ Supervisor', 3: '⚙️ Admin'})
             st.dataframe(df[['id', 'username', 'level', 'full_name', 'branch_name']], hide_index=True, use_container_width=True)
         else:
             st.info("📭 No users found.")
