@@ -12,13 +12,39 @@ from io import BytesIO
 import os
 import time  
 
-# ==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
+# ==================== CONFIGURACIÓN VISUAL ====================
 st.set_page_config(
     page_title="HARK - Management System",
     layout="wide",
     page_icon="🦈",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
+    menu_items={
+        'Get Help': None,
+        'Report a bug': None,
+        'About': None
+    }
 )
+
+# ====================  MODO CLARO ====================
+st.markdown("""
+    <style>
+        /* Forzar tema claro en toda la aplicación */
+        .stApp {
+            background-color: #f4f6f9 !important;
+        }
+        
+        /* Ocultar el selector de tema (System / Light / Dark) */
+        section[data-testid="stSidebar"] > div > div > div > div:nth-child(1) > div > div > div > div > button,
+        .st-emotion-cache-1v0mbdj > div > div > button {
+            display: none !important;
+        }
+        
+        /* Ocultar también el menú completo de configuración si quieres */
+        .stApp > header > div > div:nth-child(2) {
+            display: none !important;
+        }
+    </style>
+""", unsafe_allow_html=True)
 # ==================== LOGO HARK ====================
 st.logo(
     "hark_logo.png",          # ← Nombre exacto del archivo que subiste
