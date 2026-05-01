@@ -25,7 +25,6 @@ st.logo(
     size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
 )
 
-# ==================== CSS ====================
 # ==================== CSS Profesional ====================
 st.markdown("""
 <style>
@@ -172,6 +171,7 @@ def init_database():
             c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS brand TEXT")
             c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS model TEXT")
             c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS responsible_name TEXT")
+            c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS who_done TEXT;")
         except Exception:
             pass  # Ignorar errores si las columnas ya existen
 
@@ -219,7 +219,7 @@ SERVICE_FIELD_REQUIREMENTS = {
     "Loaner": "tag",
     "Photo": "vin",
     "Full Detail the customer": "tag",
-    "Zaktek": "both",
+    "Zaktek": "tag",
     "Show Room": "vin",
     "Full Detail for line": "vin",
     "Sold Detail": "vin",
@@ -358,8 +358,8 @@ def page_ingress():
             service = st.selectbox("Service", SERVICES_LIST, key="service_sel")
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             
-            vin_label = "VIN Number *" if req_type in ["vin", "both"] else "VIN Number (Optional)"
-            tag_label = "TAG Number *" if req_type in ["tag", "both"] else "TAG Number (Optional)"
+            vin_label = "VIN Number" if req_type in ["vin", "both"] else "VIN Number"
+            tag_label = "TAG Number" if req_type in ["tag", "both"] else "TAG Number"
             
             vin = st.text_input(vin_label, key="vin_in")
             tag = st.text_input(tag_label, key="tag_in")
@@ -383,7 +383,7 @@ def page_ingress():
                 
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
         
-        urgent = st.checkbox("🚨 Mark as URGENT (Maximum Priority)")
+        urgent = st.checkbox("🚨 Waiting Customer")
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
             if req_type == "both":
@@ -442,7 +442,6 @@ def page_ingress():
 
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
-    
     if st.session_state.level < 3:
         st.info(f"📍 Agency: **{st.session_state.branch_name}** | 👤 {st.session_state.full_name}")
     else:
@@ -464,15 +463,13 @@ def page_pending():
                        v.is_urgent, v.responsible_name
                 FROM vehicles v 
                 LEFT JOIN branches b ON v.branch_id = b.id
-                WHERE v.status = 'Pending' 
-                  AND v.branch_id = %s
+                WHERE v.status = 'Pending' AND v.branch_id = %s
             """
             if search_term:
                 base_query += " AND (v.vin_number ILIKE %s OR v.tag_number ILIKE %s)"
                 params = (st.session_state.branch_id, f"%{search_term}%", f"%{search_term}%")
             else:
                 params = (st.session_state.branch_id,)
-            
             base_query += " ORDER BY v.service, v.is_urgent DESC, v.reception_date ASC"
         else:
             base_query = """
@@ -488,7 +485,6 @@ def page_pending():
                 params = (f"%{search_term}%", f"%{search_term}%")
             else:
                 params = ()
-            
             base_query += " ORDER BY b.name, v.service, v.is_urgent DESC, v.reception_date ASC"
 
         c.execute(base_query, params)
@@ -496,9 +492,9 @@ def page_pending():
 
     if not all_v:
         if search_term:
-            st.warning(f"📭 No pending vehicles were found that matched '{search_term}'")
+            st.warning(f" No pending vehicles were found that matched '{search_term}'")
         else:
-            st.info("📭 There are no pending vehicles.")
+            st.info(" There are no pending vehicles.")
         return
 
     by_service = {}
@@ -509,51 +505,50 @@ def page_pending():
         with st.expander(f"**{svc}** — {len(vehs)} vehicle(s)", expanded=True):
             rows = []
             for v in vehs:
-                color, msg, info = get_status_info(
-                    v['service'], 
-                    v['reception_date'], 
-                    v['required_day'], 
-                    v['required_time']
-                )
+                color, msg, info = get_status_info(v['service'], v['reception_date'], v['required_day'], v['required_time'])
                 
                 rows.append({
-                    "Complete": False,
-                    "Status": msg,
-                    "TAG": v['tag_number'],
-                    "VIN": v['vin_number'] or "-",
-                    "Brand": v.get('brand') or "-",
-                    "Model": v.get('model') or "-",
-                    "Agency": v.get('agency_name') or "-",
-                    "Responsible": v['responsible_name'] or "-",
-                    "Required Day": v['required_day'] or "-",
-                    "Required Time": v['required_time'] or "-",
-                    "Received": v['reception_date'],
-                    "Time Info": info,
-                    "Urgent": "🚨" if v['is_urgent'] else " ",
-                    "_id": v['id'],
-                    "_color": color
+                     "Complete": False,
+                     "Status": msg,
+                     "TAG": v['tag_number'],
+                     "VIN": v['vin_number'] or "-",
+                     "Brand": v.get('brand') or "-",
+                     "Model": v.get('model') or "-",
+                     "Agency": v.get('agency_name') or "-",
+                     "Responsible": v['responsible_name'] or "-",
+                     "Required Day": v['required_day'] or "-",
+                     "Required Time": v['required_time'] or "-",
+                     "Received": v['reception_date'],
+                     "Time Info": info,
+                     "Urgent": "🚨" if v['is_urgent'] else " ",
+                     
+                     # 👈 CAMBIO AQUÍ: Valor vacío y nombre limpio sin espacio final
+                     "Who's Done": "", 
+                     
+                     "_id": v['id'],
+                     "_color": color
                 })
 
             df = pd.DataFrame(rows)
             
             column_config = {
-                "Complete": st.column_config.CheckboxColumn(
-                    "Complete", 
-                    help="DONE",
-                    default=False
-                ),
-                "Status": st.column_config.TextColumn(disabled=True),
-                "TAG": st.column_config.TextColumn(disabled=True),
-                "VIN": st.column_config.TextColumn(disabled=True),
-                "Brand": st.column_config.TextColumn(disabled=True),
-                "Model": st.column_config.TextColumn(disabled=True),
-                "Agency": st.column_config.TextColumn(disabled=True),
-                "Responsible": st.column_config.TextColumn(disabled=True),
-                "Required Day": st.column_config.TextColumn(disabled=True),
-                "Required Time": st.column_config.TextColumn(disabled=True),
-                "Received": st.column_config.TextColumn(disabled=True),
-                "Time Info": st.column_config.TextColumn(disabled=True),
-                "Urgent": st.column_config.TextColumn(disabled=True),
+                 "Complete": st.column_config.CheckboxColumn("Complete", help="Mark as DONE", default=False),
+                 
+                 # 👈 CAMBIO AQUÍ: Nombre limpio y required=True
+                 "Who's Done": st.column_config.TextColumn("Who's Done", help="Mandatory: Click here to type name", required=True),
+                 
+                 "Status": st.column_config.TextColumn(disabled=True),
+                 "TAG": st.column_config.TextColumn(disabled=True),
+                 "VIN": st.column_config.TextColumn(disabled=True),
+                 "Brand": st.column_config.TextColumn(disabled=True),
+                 "Model": st.column_config.TextColumn(disabled=True),
+                 "Agency": st.column_config.TextColumn(disabled=True),
+                 "Responsible": st.column_config.TextColumn(disabled=True),
+                 "Required Day": st.column_config.TextColumn(disabled=True),
+                 "Required Time": st.column_config.TextColumn(disabled=True),
+                 "Received": st.column_config.TextColumn(disabled=True),
+                 "Time Info": st.column_config.TextColumn(disabled=True),
+                 "Urgent": st.column_config.TextColumn(disabled=True),
             }
 
             edited_df = st.data_editor(
@@ -565,12 +560,22 @@ def page_pending():
                 key=f"editor_{svc.replace(' ', '_')}"
             )
 
-        if st.button("🚀 Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
+        if st.button(" Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
             selected_rows = edited_df[edited_df["Complete"] == True]
             
             if selected_rows.empty:
                 st.warning("⚠️ You have not selected a vehicle.")
             else:
+                # Validación Forzosa
+                missing_who = selected_rows[
+                    selected_rows["Who's Done"].isna() | 
+                    (selected_rows["Who's Done"].astype(str).str.strip() == "")
+                ]
+                
+                if not missing_who.empty:
+                    st.error("❌ Please fill in 'Who's Done' for all selected vehicles before marking them as Done.")
+                    st.stop()
+                
                 count = 0
                 dallas_tz = ZoneInfo("America/Chicago")
                 delivery_time = datetime.now(dallas_tz).strftime("%Y-%m-%d %H:%M")
@@ -579,20 +584,23 @@ def page_pending():
                     with get_db() as conn2:
                         c2 = conn2.cursor()
                         for idx in selected_rows.index:
-                            # ← IMPORTANTE: Convertir a int normal de Python
                             original_id = int(df.loc[idx, '_id'])
+                            
+                            # 👈 CAMBIO AQUÍ: Nombre limpio sin espacio final
+                            who_done_val = str(edited_df.loc[idx, "Who's Done"]).strip()
+                            
                             c2.execute("""
                                 UPDATE vehicles 
-                                SET status = 'Delivered', delivery_date = %s, handled_by = %s 
+                                SET status = 'Delivered', delivery_date = %s, handled_by = %s, who_done = %s 
                                 WHERE id = %s
-                            """, (delivery_time, st.session_state.username, original_id))
+                            """, (delivery_time, st.session_state.username, who_done_val, original_id))
                             count += 1
                     
                     st.success(f"✅ {count} Vehicle(s) finished correctly.")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Error updating vehicles: {e}")    
-
+                    st.error(f"❌ Error updating vehicles: {e}")
+                    
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
@@ -640,7 +648,7 @@ def page_reports():
             SELECT 
                 v.tag_number, v.vin_number, v.brand, v.model, v.service,
                 v.status, v.reception_date, v.delivery_date, v.is_urgent,
-                COALESCE(b.name, 'Global/Admin') as agency
+                COALESCE(b.name, 'Global/Admin') as agency, v.who_done
             FROM vehicles v
             LEFT JOIN branches b ON v.branch_id = b.id
         """
@@ -675,7 +683,7 @@ def page_reports():
 
         df_all = pd.DataFrame(rows, columns=[
             'tag_number', 'vin_number', 'brand', 'model', 'service',
-            'status', 'reception_date', 'delivery_date', 'is_urgent', 'agency'
+            'status', 'reception_date', 'delivery_date', 'is_urgent', 'agency', 'who_done'
         ])
 
     if df_all.empty:
@@ -693,7 +701,8 @@ def page_reports():
         'reception_date': 'Received',
         'delivery_date': 'Delivered',
         'is_urgent': 'Urgent',
-        'agency': 'Agency'
+        'agency': 'Agency',
+        'who_done': "Who's Done"
     })
 
     df_display['Urgent'] = df_display['Urgent'].map({1: '🚨 Yes', 0: 'No'})
@@ -1105,7 +1114,7 @@ def page_public_ingress_level0():
                 
             notes = st.text_area("Notes", placeholder="Observations...", key="guest_notes")
         
-        urgent = st.checkbox("🚨 Mark as URGENT")
+        urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾Save Vehicle", use_container_width=True, type="primary"):
             # Validaciones (igual que en page_ingress)
