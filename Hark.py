@@ -87,39 +87,40 @@ h1, h2, h3 {
 """, unsafe_allow_html=True)
 #==================== BASE DE DATOS ====================
 @contextmanager
+@contextmanager
 def get_db():
     conn = None
     try:
-        if os.getenv( "DB_HOST "):
+        if os.getenv("DB_HOST"):  # ⚠️ Nota: quitado los espacios extra en las claves
             cfg = {
-                 "HOST ": os.getenv( "DB_HOST "),
-                 "NAME ": os.getenv( "DB_NAME "),
-                 "USER ": os.getenv( "DB_USER "),
-                 "PASSWORD ": os.getenv( "DB_PASSWORD "),
-                 "PORT ": int(os.getenv( "DB_PORT ", 5432)),
+                "HOST": os.getenv("DB_HOST"),
+                "NAME": os.getenv("DB_NAME"),
+                "USER": os.getenv("DB_USER"),
+                "PASSWORD": os.getenv("DB_PASSWORD"),
+                "PORT": int(os.getenv("DB_PORT", 5432)),
             }
-        elif  "DB " in st.secrets:
-            cfg = st.secrets[ "DB "]
+        elif "DB" in st.secrets:
+            cfg = st.secrets["DB"]
         else:
-            st.error( "❌ No database credentials were found. ")
+            st.error("❌ No database credentials were found.")
             st.stop()
 
-        if not all([cfg.get(k) for k in [ "HOST ",  "NAME ",  "USER ",  "PASSWORD "]]):
-            st.error( "❌ Database credentials are missing. ")
+        if not all([cfg.get(k) for k in ["HOST", "NAME", "USER", "PASSWORD"]]):
+            st.error("❌ Database credentials are missing.")
             st.stop()
 
         conn = psycopg2.connect(
-            host=cfg[ "HOST "],
-            dbname=cfg[ "NAME "],
-            user=cfg[ "USER "],
-            password=cfg[ "PASSWORD "],
-            port=cfg.get( "PORT ", 5432),
+            host=cfg["HOST"],
+            dbname=cfg["NAME"],
+            user=cfg["USER"],
+            password=cfg["PASSWORD"],
+            port=cfg.get("PORT", 5432),
             cursor_factory=psycopg2.extras.RealDictCursor
         )
         conn.autocommit = False
 
         with conn.cursor() as temp_cursor:
-            temp_cursor.execute( "SET TIME ZONE 'America/Chicago' ")
+            temp_cursor.execute("SET TIME ZONE 'America/Chicago'")
 
         yield conn
         conn.commit()
@@ -127,12 +128,12 @@ def get_db():
     except Exception as e:
         if conn:
             conn.rollback()
-        st.error(f "⚠️ Database Error: {str(e)} ")
+        st.error(f"⚠️ Database Error: {str(e)}")  # ✅ CORREGIDO
         raise
     finally:
         if conn:
             conn.close()
-
+            
 def init_database():
     with get_db() as conn:
         c = conn.cursor()
