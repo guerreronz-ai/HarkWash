@@ -10,7 +10,6 @@ import hashlib
 from contextlib import contextmanager
 from io import BytesIO
 import os
-import time  
 
 # ==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
 st.set_page_config(
@@ -19,10 +18,11 @@ st.set_page_config(
     page_icon="🦈",
     initial_sidebar_state="expanded"
 )
+
 # ==================== LOGO HARK ====================
 st.logo(
-    "hark_logo.png",          # ← Nombre exacto del archivo que subiste
-    size="large"         # puedes cambiar a "medium" si lo quieres más pequeño
+    "hark_logo.png",
+    size="large"
 )
 
 # ==================== CSS Profesional ====================
@@ -32,17 +32,14 @@ st.markdown("""
     background-color: #f4f6f9 !important;
 }
 
-/* OCULTAR SOLO EL MENÚ DE TRES PUNTOS (Theme Selector) */
 #MainMenu {
     visibility: hidden !important;
 }
 
-/* OCULTAR FOOTER */
 footer {
     visibility: hidden !important;
 }
 
-/* Forzar fondo claro en sidebar */
 [data-testid="stSidebar"] {
     background-color: #ffffff !important;
 }
@@ -88,6 +85,27 @@ h1, h2, h3 {
 </style>
 """, unsafe_allow_html=True)
 
+# ==================== FUNCIONES AUXILIARES DE TIEMPO ====================
+def format_time_12h(time_str):
+    """Convierte hora de 24h a 12h con AM/PM"""
+    if not time_str or time_str == "-":
+        return "-"
+    try:
+        time_obj = datetime.strptime(time_str, "%H:%M")
+        return time_obj.strftime("%I:%M %p")
+    except:
+        return time_str
+
+def format_datetime_12h(datetime_str):
+    """Convierte datetime de 24h a 12h con AM/PM"""
+    if not datetime_str or datetime_str == "-":
+        return "-"
+    try:
+        dt_obj = datetime.strptime(datetime_str, "%Y-%m-%d %H:%M")
+        return dt_obj.strftime("%Y-%m-%d %I:%M %p")
+    except:
+        return datetime_str
+
 # ==================== BASE DE DATOS ====================
 @contextmanager
 def get_db():
@@ -104,11 +122,11 @@ def get_db():
         elif "DB" in st.secrets:
             cfg = st.secrets["DB"]
         else:
-            st.error("❌ No se encontraron credenciales de base de datos.")
+            st.error("❌ No database credentials were found.")
             st.stop()
-
+        
         if not all([cfg.get(k) for k in ["HOST", "NAME", "USER", "PASSWORD"]]):
-            st.error("❌ Faltan credenciales de la base de datos.")
+            st.error("❌ Database credentials are missing.")
             st.stop()
 
         conn = psycopg2.connect(
@@ -135,11 +153,11 @@ def get_db():
     finally:
         if conn:
             conn.close()
+
 def init_database():
     with get_db() as conn:
         c = conn.cursor()
         
-        # Creación de tablas
         c.execute('''CREATE TABLE IF NOT EXISTS branches (
             id SERIAL PRIMARY KEY, name TEXT UNIQUE NOT NULL, active INTEGER DEFAULT 1
         )''')
@@ -163,7 +181,6 @@ def init_database():
             is_urgent INTEGER DEFAULT 0, branch_id INTEGER REFERENCES branches(id)
         )''')
 
-        # Corrección de columnas - Sin commit intermedio
         try:
             c.execute("ALTER TABLE vehicles ALTER COLUMN tag_number DROP NOT NULL")
             c.execute("ALTER TABLE vehicles ALTER COLUMN required_day DROP NOT NULL")
@@ -173,14 +190,12 @@ def init_database():
             c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS responsible_name TEXT")
             c.execute("ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS who_done TEXT;")
         except Exception:
-            pass  # Ignorar errores si las columnas ya existen
+            pass  
 
-        # Datos iniciales - Branches
         c.execute("SELECT COUNT(*) as total FROM branches")
         if c.fetchone()['total'] == 0:
             c.execute("INSERT INTO branches (name) VALUES ('BMW Arlington'), ('Five Star Subaru'), ('Vandergriff Acura')")
 
-        # Datos iniciales - Users
         c.execute("SELECT COUNT(*) as total FROM users")
         if c.fetchone()['total'] == 0:
             c.execute("SELECT id, name FROM branches")
@@ -205,13 +220,12 @@ def init_database():
                 users_data
             )
         
-        # Single commit al final
         conn.commit()
 
 # ==================== CONSTANTES ====================
 SERVICES_LIST = [
     "Service Wash", "Loaner", "Photo", "Full Detail the customer",
-    "Zaktek", "Show Room", "Full Detail for line", "Sold Detail","Sold use car", "Sold new car"
+    "Zaktek", "Show Room", "Full Detail for line", "Sold Detail", "Sold use car", "Sold new car"
 ]
 
 SERVICE_FIELD_REQUIREMENTS = {
@@ -302,7 +316,6 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
 # ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
-    
     with st.form("login_form"):
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
@@ -338,19 +351,16 @@ def login_page():
                 else:
                     st.error("❌ Invalid credentials")
 
-    # ==================== BOTÓN DE INGRESO PÚBLICO (FUERA del formulario) ====================
     st.divider()
-    st.markdown("### Do you need to bring in a vehicle??")
-    if st.button("🚦 Start without login", 
-                 use_container_width=True, 
-                 type="secondary"):
+    st.markdown("### Do you need to bring in a vehicle?")
+    if st.button("🚦 Start without login", use_container_width=True, type="secondary"):
         st.session_state.guest_mode = True
         st.rerun()
-                     
+
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
-    st.info(f"📍 Agency: **{st.session_state.branch_name}** | 👤 {st.session_state.full_name}")
-
+    st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
+    
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         
@@ -366,7 +376,7 @@ def page_ingress():
             brand = st.text_input("Brand", key="brand_in", placeholder="")
         
         with col2:
-            model = st.text_input("Model ", key="model_in", placeholder="")
+            model = st.text_input("Model", key="model_in", placeholder="")
             responsible_name = st.text_input("Technical/Sales Man (Name)", key="res_name_in")
         
         with col3:
@@ -492,9 +502,9 @@ def page_pending():
 
     if not all_v:
         if search_term:
-            st.warning(f" No pending vehicles were found that matched '{search_term}'")
+            st.warning(f"📭 No pending vehicles were found that matched '{search_term}'")
         else:
-            st.info(" There are no pending vehicles.")
+            st.info("📭 There are no pending vehicles.")
         return
 
     by_service = {}
@@ -505,50 +515,44 @@ def page_pending():
         with st.expander(f"**{svc}** — {len(vehs)} vehicle(s)", expanded=True):
             rows = []
             for v in vehs:
-                color, msg, info = get_status_info(v['service'], v['reception_date'], v['required_day'], v['required_time'])
+                color, msg, info = get_status_info(v['service'], v['reception_date'], v['required_day'], v['required_time']) 
                 
                 rows.append({
-                     "Complete": False,
-                     "Status": msg,
-                     "TAG": v['tag_number'],
-                     "VIN": v['vin_number'] or "-",
-                     "Brand": v.get('brand') or "-",
-                     "Model": v.get('model') or "-",
-                     "Agency": v.get('agency_name') or "-",
-                     "Responsible": v['responsible_name'] or "-",
-                     "Required Day": v['required_day'] or "-",
-                     "Required Time": v['required_time'] or "-",
-                     "Received": v['reception_date'],
-                     "Time Info": info,
-                     "Urgent": "🚨" if v['is_urgent'] else " ",
-                     
-                     # 👈 CAMBIO AQUÍ: Valor vacío y nombre limpio sin espacio final
-                     "Who's Done": "", 
-                     
-                     "_id": v['id'],
-                     "_color": color
+                    "Complete": False,
+                    "Status": msg,
+                    "TAG": v['tag_number'],
+                    "VIN": v['vin_number'] or "-",
+                    "Brand": v.get('brand') or "-",
+                    "Model": v.get('model') or "-",
+                    "Agency": v.get('agency_name') or "-",
+                    "Responsible": v['responsible_name'] or "-",
+                    "Required Day": v['required_day'] or "-",
+                    "Required Time": format_time_12h(v['required_time']),
+                    "Received": format_datetime_12h(v['reception_date']),
+                    "Time Info": info,
+                    "Urgent": "🚨" if v['is_urgent'] else " ",
+                    "Who's Done": "",
+                    "_id": v['id'],
+                    "_color": color
                 })
 
             df = pd.DataFrame(rows)
             
             column_config = {
-                 "Complete": st.column_config.CheckboxColumn("Complete", help="Mark as DONE", default=False),
-                 
-                 # 👈 CAMBIO AQUÍ: Nombre limpio y required=True
-                 "Who's Done": st.column_config.TextColumn("Who's Done", help="Mandatory: Click here to type name", required=True),
-                 
-                 "Status": st.column_config.TextColumn(disabled=True),
-                 "TAG": st.column_config.TextColumn(disabled=True),
-                 "VIN": st.column_config.TextColumn(disabled=True),
-                 "Brand": st.column_config.TextColumn(disabled=True),
-                 "Model": st.column_config.TextColumn(disabled=True),
-                 "Agency": st.column_config.TextColumn(disabled=True),
-                 "Responsible": st.column_config.TextColumn(disabled=True),
-                 "Required Day": st.column_config.TextColumn(disabled=True),
-                 "Required Time": st.column_config.TextColumn(disabled=True),
-                 "Received": st.column_config.TextColumn(disabled=True),
-                 "Time Info": st.column_config.TextColumn(disabled=True),
-                 "Urgent": st.column_config.TextColumn(disabled=True),
+                "Complete": st.column_config.CheckboxColumn("Complete", help="Mark as DONE", default=False),
+                "Who's Done": st.column_config.TextColumn("Who's Done", help="Mandatory: Click here to type name", required=True),
+                "Status": st.column_config.TextColumn(disabled=True),
+                "TAG": st.column_config.TextColumn(disabled=True),
+                "VIN": st.column_config.TextColumn(disabled=True),
+                "Brand": st.column_config.TextColumn(disabled=True),
+                "Model": st.column_config.TextColumn(disabled=True),
+                "Agency": st.column_config.TextColumn(disabled=True),
+                "Responsible": st.column_config.TextColumn(disabled=True),
+                "Required Day": st.column_config.TextColumn(disabled=True),
+                "Required Time": st.column_config.TextColumn(disabled=True),
+                "Received": st.column_config.TextColumn(disabled=True),
+                "Time Info": st.column_config.TextColumn(disabled=True),
+                "Urgent": st.column_config.TextColumn(disabled=True),
             }
 
             edited_df = st.data_editor(
@@ -560,13 +564,12 @@ def page_pending():
                 key=f"editor_{svc.replace(' ', '_')}"
             )
 
-        if st.button(" Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
+        if st.button("🚀 Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
             selected_rows = edited_df[edited_df["Complete"] == True]
             
             if selected_rows.empty:
                 st.warning("⚠️ You have not selected a vehicle.")
             else:
-                # Validación Forzosa
                 missing_who = selected_rows[
                     selected_rows["Who's Done"].isna() | 
                     (selected_rows["Who's Done"].astype(str).str.strip() == "")
@@ -585,8 +588,6 @@ def page_pending():
                         c2 = conn2.cursor()
                         for idx in selected_rows.index:
                             original_id = int(df.loc[idx, '_id'])
-                            
-                            # 👈 CAMBIO AQUÍ: Nombre limpio sin espacio final
                             who_done_val = str(edited_df.loc[idx, "Who's Done"]).strip()
                             
                             c2.execute("""
@@ -600,14 +601,14 @@ def page_pending():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error updating vehicles: {e}")
-                    
+
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
-    
+        
     if st.session_state.level < 2:
         st.error("🚫 You do not have permissions to access Reports.")
         st.info("This section is available only for Supervisors and Administrators.")
@@ -705,6 +706,10 @@ def page_reports():
         'who_done': "Who's Done"
     })
 
+    # Aplicar formato 12h a las fechas
+    df_display['Received'] = df_display['Received'].apply(format_datetime_12h)
+    df_display['Delivered'] = df_display['Delivered'].apply(format_datetime_12h)
+
     df_display['Urgent'] = df_display['Urgent'].map({1: '🚨 Yes', 0: 'No'})
 
     total = len(df_display)
@@ -736,16 +741,15 @@ def page_reports():
         st.caption("⚠️ This action will return the vehicle to 'Pending' and clear the delivery date.")
 
         rev_query = """
-    SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, v.service, 
-           v.delivery_date, v.handled_by, b.name as agency
-    FROM vehicles v
-    LEFT JOIN branches b ON v.branch_id = b.id
-    WHERE v.status = 'Delivered'
-      AND v.delivery_date::timestamp >= NOW() - INTERVAL '24 hours'
-"""
+            SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, v.service, 
+                   v.delivery_date, v.handled_by, b.name as agency
+            FROM vehicles v
+            LEFT JOIN branches b ON v.branch_id = b.id
+            WHERE v.status = 'Delivered'
+              AND v.delivery_date::timestamp >= NOW() - INTERVAL '24 hours'
+        """
         rev_conditions = []
         rev_params = []
-
         if st.session_state.level == 2:
             rev_conditions.append("v.branch_id = %s")
             rev_params.append(st.session_state.branch_id)
@@ -794,11 +798,9 @@ def page_users():
     if st.session_state.level != 3:
         st.warning("🔒 Access denied. Only Administrators can manage users.")
         return
-
-    # ====================  GESTIÓN DE USUARIOS ====================
+    
     st.subheader("👤 User Management")
 
-    # --- CREAR NUEVO USUARIO ---
     with st.expander("➕ Add New User", expanded=False):
         with st.form("create_user_form"):
             col1, col2, col3 = st.columns(3)
@@ -809,14 +811,12 @@ def page_users():
                 new_fullname = st.text_input("Full Name", placeholder="John Doe")
                 new_level = st.selectbox("Access Level", [1, 2, 3], format_func=lambda x: {1: "👤 Agent", 2: "🛡️ Supervisor", 3: "⚙️ Admin"}[x])
             with col3:
-                # Obtener agencias actualizadas (incluyendo las recién creadas)
                 with get_db() as conn:
                     c = conn.cursor()
                     c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
                     branches = c.fetchall()
                     branch_opts = {b['name']: b['id'] for b in branches}
                 
-                # Si es Admin, no asignar agencia (Global)
                 if new_level == 3:
                     st.info("🌐 Admin users are Global/Admin")
                     selected_branch = None
@@ -843,7 +843,6 @@ def page_users():
 
     st.divider()
 
-    # --- VER LISTA DE USUARIOS ---
     with st.expander("📋 Registered Users List", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
@@ -859,14 +858,12 @@ def page_users():
 
         if users_data:
             df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name', 'branch_id'])
-            df['level'] = df['level'].map({1: ' Agent', 2: '🛡️ Supervisor', 3: '⚙️ Admin'})
+            df['level'] = df['level'].map({1: '👤 Agent', 2: '🛡️ Supervisor', 3: '⚙️ Admin'})
             st.dataframe(df[['id', 'username', 'level', 'full_name', 'branch_name']], hide_index=True, use_container_width=True)
         else:
             st.info("📭 No users found.")
 
-    # --- EDITAR AGENCIA DE USUARIO ---
     with st.expander("✏️ Edit User - Change Agency", expanded=False):
-        # Recargar datos para el selector
         with get_db() as conn:
             c = conn.cursor()
             c.execute("""
@@ -892,7 +889,6 @@ def page_users():
                     branches = c.fetchall()
                     branch_opts = {b['name']: b['id'] for b in branches}
                     
-                    # Permitir volver a Global/Admin si el usuario es Admin
                     if selected_user['level'] == 3:
                         branch_options_edit = {"🌐 Global/Admin": None}
                         branch_options_edit.update(branch_opts)
@@ -916,7 +912,6 @@ def page_users():
 
     st.divider()
 
-    # --- ACCIONES AVANZADAS (Password / Delete) ---
     with st.expander("🔧 Advanced Actions (Password / Delete)", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
@@ -934,7 +929,6 @@ def page_users():
             if user_list:
                 col1, col2 = st.columns(2)
                 
-                # Columna 1: Reset Password
                 with col1:
                     st.markdown("### 🔑 Reset Password")
                     selected_user_pass = st.selectbox("Select User", list(user_list.keys()), key="reset_pass_user")
@@ -950,9 +944,8 @@ def page_users():
                             st.success(f"✅ Password updated for {selected_user_pass}")
                             st.rerun()
                         else:
-                            st.error(" Enter a password")
+                            st.error("❌ Enter a password")
                 
-                # Columna 2: Delete User
                 with col2:
                     st.markdown("### 🗑️ Delete User")
                     delete_list = {f"{u['username']} - {u['full_name']}": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
@@ -971,11 +964,10 @@ def page_users():
                     else:
                         st.info("ℹ️ No other users to delete.")
         else:
-            st.info(" No users found.")
-    # ==================== GESTIÓN DE AGENCIAS ====================
-    st.subheader("🏢 Agency Management")
+            st.info("📭 No users found.")
     
-    # --- AGREGAR NUEVA AGENCIA ---
+    st.subheader("🏢 Agency Management")
+
     with st.expander("➕ Add New Agency", expanded=True):
         with st.form("add_branch_form"):
             col1, col2 = st.columns([3, 1])
@@ -1003,7 +995,6 @@ def page_users():
 
     st.divider()
 
-    # --- EDITAR AGENCIAS EXISTENTES ---
     with st.expander("✏️ Edit Existing Agencies", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
@@ -1037,7 +1028,7 @@ def page_users():
                                     st.error(f"❌ Name '{new_name_clean}' already exists.")
                                 else:
                                     st.error(f"❌ DB Error: {e}")
-                                
+                        
                 with col_c:
                     is_active = b['active'] == 1
                     new_active = st.checkbox("Active", value=is_active, key=f"branch_act_{b['id']}")
@@ -1053,12 +1044,9 @@ def page_users():
         else:
             st.info("📭 No agencies found in database.")
 
-    st.divider()
-#==================================GUESS=========================================
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
     
-    # ==================== SELECCIÓN DE AGENCIA (solo una vez) ====================
     if 'guest_branch_id' not in st.session_state or 'guest_branch_name' not in st.session_state:
         st.info("👋 Select your agency to get started")
         
@@ -1077,9 +1065,8 @@ def page_public_ingress_level0():
             st.success(f"✅ Agency set up: **{selected_branch_name}**")
             st.rerun()
         
-        st.stop()  # No muestra el formulario hasta que elija agencia
+        st.stop()
 
-    # ==================== FORMULARIO DE INGRESO (ya con agencia fija) ====================
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
 
     with st.form("guest_ingress_form", clear_on_submit=True):
@@ -1089,8 +1076,8 @@ def page_public_ingress_level0():
             service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             
-            vin_label = "VIN Number *" if req_type in ["vin", "both"] else "VIN Number "
-            tag_label = "TAG Number *" if req_type in ["tag", "both"] else "TAG Number "
+            vin_label = "VIN Number *" if req_type in ["vin", "both"] else "VIN Number"
+            tag_label = "TAG Number *" if req_type in ["tag", "both"] else "TAG Number"
             
             vin = st.text_input(vin_label, key="guest_vin")
             tag = st.text_input(tag_label, key="guest_tag")
@@ -1107,26 +1094,25 @@ def page_public_ingress_level0():
             if service == "Full Detail for line":
                 req_day = None
                 req_time = None
-                st.info("ℹ️ Full Detail for line no requiere fecha/hora específica.")
+                st.info("ℹ️ Full Detail for line does not require a specific date/time.")
             else:
-                req_day = st.date_input("Día Requerido", value=default_day, min_value=today, key="guest_day")
-                req_time = st.time_input("Hora Requerida", value=dt_time(9, 0), key="guest_time")
+                req_day = st.date_input("Required Day", value=default_day, min_value=today, key="guest_day")
+                req_time = st.time_input("Required Time", value=dt_time(9, 0), key="guest_time")
                 
             notes = st.text_area("Notes", placeholder="Observations...", key="guest_notes")
         
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾Save Vehicle", use_container_width=True, type="primary"):
-            # Validaciones (igual que en page_ingress)
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             if req_type == "both" and (not vin.strip() or not tag.strip()):
-                st.error("❌ Este servicio requiere VIN y TAG")
+                st.error("❌ This service requires VIN y TAG")
                 st.stop()
             elif req_type == "vin" and not vin.strip():
-                st.error("❌ Este servicio requiere VIN")
+                st.error("❌ This service requires VIN")
                 st.stop()
             elif req_type == "tag" and not tag.strip():
-                st.error("❌ Este servicio requiere TAG")
+                st.error("❌ This service requires TAG")
                 st.stop()
 
             dallas_now = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %H:%M")
@@ -1157,7 +1143,6 @@ def page_public_ingress_level0():
             st.success("✅ Vehicle correctly registered in " + st.session_state.guest_branch_name)
             st.rerun()
 
-    # Botón para cambiar de agencia o salir
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🔄 Change Agency"):
@@ -1166,7 +1151,7 @@ def page_public_ingress_level0():
             if 'guest_branch_name' in st.session_state:
                 del st.session_state.guest_branch_name
             st.rerun()
-    
+
     with col_b:
         if st.button("👤Go to Normal Login"):
             for key in list(st.session_state.keys()):
@@ -1176,34 +1161,11 @@ def page_public_ingress_level0():
 # ==================== MAIN ====================
 def main():
     init_database()
-
-    # === MODO PÚBLICO NIVEL 0 (sin login) ===
-    if st.session_state.get("guest_mode", False) or "public" in st.query_params:
+    
+    if st.session_state.get("guest_mode", False):
         page_public_ingress_level0()
         return
 
-    if 'logged_in' not in st.session_state:
-        login_page()
-    else:
-       
-        st.sidebar.markdown(...)  
-
-        if st.sidebar.button("🚪 Sign Out", use_container_width=True):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.rerun()
-
-
-# ==================== MAIN ====================
-def main():
-    init_database()
-
-    # ==================== MODO PÚBLICO NIVEL 0 (Guest / Sin Login) ====================
-    if st.session_state.get("guest_mode", False):
-        page_public_ingress_level0()
-        return   # ← Muy importante: detenemos la ejecución aquí
-
-    # ==================== LÓGICA DE TIMEOUT: 5 HORAS PARA NIVEL 1 ====================
     if 'logged_in' in st.session_state and st.session_state.level == 1:
         if 'login_timestamp' not in st.session_state:
             st.session_state.login_timestamp = time.time()
@@ -1216,19 +1178,17 @@ def main():
                 del st.session_state[key]
             st.rerun()
 
-    # ==================== LOGIN NORMAL ====================
     if 'logged_in' not in st.session_state:
         login_page()
     else:
-        # Sidebar del usuario logueado
         st.sidebar.markdown(f"""
-        <div style='text-align:center; padding: 20px 0;'>
-            <h1 style='color:#00d4ff; margin:0; font-size:2.4em;'>🦈 HARK</h1>
-            <p style='color:#94a3b8; margin:10px 0 0 0;'>
-                {st.session_state.full_name}<br>
-                <small style='color:#64748b;'>{st.session_state.branch_name}</small>
-            </p>
-        </div>
+            <div style='text-align:center; padding: 20px 0;'>
+                <h1 style='color:#00d4ff; margin:0; font-size:2.4em;'>🦈 HARK</h1>
+                <p style='color:#94a3b8; margin:10px 0 0 0;'>
+                    {st.session_state.full_name} <br>
+                    <small style='color:#64748b;'>{st.session_state.branch_name}</small>
+                </p>
+            </div>
         """, unsafe_allow_html=True)
 
         if st.sidebar.button("🚪 Sign Out", use_container_width=True):
@@ -1236,7 +1196,6 @@ def main():
                 del st.session_state[k]
             st.rerun()
 
-        # Menú según nivel de usuario
         menu_options = ["🚦 Ingress", "🏎️ Pending"]
         if st.session_state.level >= 2:
             menu_options.append("📊 Reports")
