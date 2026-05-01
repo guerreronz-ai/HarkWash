@@ -255,11 +255,11 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         if service_clean ==  "Full Detail for line ":
             hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
             if hours_since_reception  < 24:
-                return  "#28a745 ",  "✅ On Time ", f "{hours_since_reception:.1f}h since reception "
+                return  "#28a745 ",  "✅ On Time ", f"{hours_since_reception:.1f}h since reception "
             elif hours_since_reception  < 48:
-                return  "#ffc107 ",  "⚠️ Attention ", f "{hours_since_reception:.1f}h since reception "
+                return  "#ffc107 ",  "⚠️ Attention ", f"{hours_since_reception:.1f}h since reception "
             else:
-                return  "#dc3545 ",  "🚨 Delayed ", f "{hours_since_reception:.1f}h since reception "
+                return  "#dc3545 ",  "🚨 Delayed ", f"{hours_since_reception:.1f}h since reception "
         
         if not req_day_str or not req_time_str:
             return  "#6c757d ",  "⚠️ No Deadline ",  "-"
@@ -267,9 +267,9 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         try:
             # ✅ Mismo fallback para la fecha/hora requerida
             req_time_clean = req_time_str.replace(" AM", " AM").replace(" PM", " PM") # limpieza extra si acaso
-            req_date = datetime.strptime(f "{req_day_str} {req_time_str} ", "%Y-%m-%d %I:%M %p")
+            req_date = datetime.strptime(f"{req_day_str} {req_time_str} ", "%Y-%m-%d %I:%M %p")
         except ValueError:
-            req_date = datetime.strptime(f "{req_day_str} {req_time_str} ", "%Y-%m-%d %H:%M")
+            req_date = datetime.strptime(f"{req_day_str} {req_time_str} ", "%Y-%m-%d %H:%M")
         req_date = req_date.replace(tzinfo=dallas_tz)
         
         hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
@@ -277,18 +277,18 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         
         if service_clean in [ "Full Detail the customer ",  "Zaktek ",  "Sold Detail ",  "Sold new car ",  "Sold use car "]:
             if hours_until_deadline  > 2.0:
-                return  "#28a745 ",  "✅ Ample Time ", f "{hours_until_deadline:.1f}h until deadline "
+                return  "#28a745 ",  "✅ Ample Time ", f"{hours_until_deadline:.1f}h until deadline "
             elif hours_until_deadline  > 1.0:
-                return  "#ffc107 ",  "⚠️ Medium Time ", f "{hours_until_deadline:.1f}h until deadline "
+                return  "#ffc107 ",  "⚠️ Medium Time ", f"{hours_until_deadline:.1f}h until deadline "
             else:
-                return  "#dc3545 ",  "🚨 Critical ", f "{hours_until_deadline:.1f}h until deadline "
+                return  "#dc3545 ",  "🚨 Critical ", f"{hours_until_deadline:.1f}h until deadline "
         else:
             if hours_since_reception  < 24:
-                return  "#28a745 ",  "✅ On Time ", f "{hours_since_reception:.1f}h since reception "
+                return  "#28a745 ",  "✅ On Time ", f"{hours_since_reception:.1f}h since reception "
             elif hours_since_reception  < 48:
-                return  "#ffc107 ",  "⚠️ Attention ", f "{hours_since_reception:.1f}h since reception "
+                return  "#ffc107 ",  "⚠️ Attention ", f"{hours_since_reception:.1f}h since reception "
             else:
-                return  "#dc3545 ",  "🚨 Delayed ", f "{hours_since_reception:.1f}h since reception "
+                return  "#dc3545 ",  "🚨 Delayed ", f"{hours_since_reception:.1f}h since reception "
             
     except Exception as e:
         return  "#6c757d ",  "⚠️ Error ",  "-"
@@ -326,7 +326,7 @@ def login_page():
                          "branch_name ": user['branch_name'],
                          "full_name ": user['full_name']
                     })
-                    st.success(f "✅ Welcome, {user['full_name']} ")
+                    st.success(f"✅ Welcome, {user['full_name']} ")
                     st.rerun()
                 else:
                     st.error( "❌ Invalid credentials ")
@@ -398,13 +398,13 @@ def page_ingress():
             
             with get_db() as conn:
                 c = conn.cursor()
-                c.execute(f """
+                c.execute(f"""
                     SELECT id FROM vehicles 
                     WHERE {check_col}=%s AND service=%s AND branch_id=%s AND status='Pending'
                  """, (check_val, service, st.session_state.branch_id))
                 
                 if c.fetchone():
-                    st.error(f "❌ {check_val} is already registered for {service} ")
+                    st.error(f"❌ {check_val} is already registered for {service} ")
                     st.stop()
                 
                 c.execute( """
@@ -458,7 +458,7 @@ def page_pending():
              """
             if search_term:
                 base_query +=  " AND (v.vin_number ILIKE %s OR v.tag_number ILIKE %s) "
-                params = (st.session_state.branch_id, f "%{search_term}% ", f "%{search_term}% ")
+                params = (st.session_state.branch_id, f"%{search_term}% ", f"%{search_term}% ")
             else:
                 params = (st.session_state.branch_id,)
             base_query +=  " ORDER BY v.service, v.is_urgent DESC, v.reception_date ASC "
@@ -473,7 +473,7 @@ def page_pending():
              """
             if search_term:
                 base_query +=  " AND (v.vin_number ILIKE %s OR v.tag_number ILIKE %s) "
-                params = (f "%{search_term}% ", f "%{search_term}% ")
+                params = (f"%{search_term}% ", f"%{search_term}% ")
             else:
                 params = ()
             base_query +=  " ORDER BY b.name, v.service, v.is_urgent DESC, v.reception_date ASC "
@@ -483,7 +483,7 @@ def page_pending():
 
     if not all_v:
         if search_term:
-            st.warning(f " No pending vehicles were found that matched '{search_term}' ")
+            st.warning(f" No pending vehicles were found that matched '{search_term}' ")
         else:
             st.info( " There are no pending vehicles. ")
         return
@@ -493,7 +493,7 @@ def page_pending():
         by_service.setdefault(v['service'], []).append(v)
 
     for svc, vehs in by_service.items():
-        with st.expander(f "**{svc}** — {len(vehs)} vehicle(s) ", expanded=True):
+        with st.expander(f"**{svc}** — {len(vehs)} vehicle(s) ", expanded=True):
             rows = []
             for v in vehs:
                 color, msg, info = get_status_info(v['service'], v['reception_date'], v['required_day'], v['required_time']) 
@@ -542,10 +542,10 @@ def page_pending():
                 hide_index=True,
                 use_container_width=True,
                 num_rows= "fixed ",
-                key=f "editor_{svc.replace(' ', '_')} "
+                key=f"editor_{svc.replace(' ', '_')} "
             )
 
-        if st.button( " Done ", key=f "btn_deliver_{svc.replace(' ', '_')} ", use_container_width=True, type= "primary "):
+        if st.button( " Done ", key=f"btn_deliver_{svc.replace(' ', '_')} ", use_container_width=True, type= "primary "):
             selected_rows = edited_df[edited_df[ "Complete "] == True]
             
             if selected_rows.empty:
@@ -578,10 +578,10 @@ def page_pending():
                              """, (delivery_time, st.session_state.username, who_done_val, original_id))
                             count += 1
                     
-                    st.success(f "✅ {count} Vehicle(s) finished correctly. ")
+                    st.success(f"✅ {count} Vehicle(s) finished correctly. ")
                     st.rerun()
                 except Exception as e:
-                    st.error(f "❌ Error updating vehicles: {e} ")
+                    st.error(f"❌ Error updating vehicles: {e} ")
 
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
@@ -708,7 +708,7 @@ def page_reports():
     st.download_button(
          label= "📥 Download Excel ",
         data=output,
-        file_name=f "HARK_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx ",
+        file_name=f"HARK_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx ",
         mime= "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet "
     )
 
@@ -747,7 +747,7 @@ def page_reports():
             st.dataframe(display_df, hide_index=True, use_container_width=True)
 
             vehicle_options = {
-                f "{v['tag_number']} | {v['brand']} {v['model']} (Delivered: {v['delivery_date']}) ": v['id'] 
+                f"{v['tag_number']} | {v['brand']} {v['model']} (Delivered: {v['delivery_date']}) ": v['id'] 
                 for v in delivered_list
             }
             selected_vehicle = st.selectbox( "📍 Select the vehicle to reverse: ", list(vehicle_options.keys()), index=None)
@@ -765,7 +765,7 @@ def page_reports():
                             handled_by = NULL 
                          WHERE id = %s AND status = 'Delivered'
                      """, (vid,))
-                st.success(f "✅ Vehicle successfully reverted to state 'Pending'. ")
+                st.success(f"✅ Vehicle successfully reverted to state 'Pending'. ")
                 st.rerun()
         else:
             st.info( "📭 There are no recently delivered vehicles to reverse. ")
@@ -815,10 +815,10 @@ def page_users():
                                 INSERT INTO users (username, password, level, full_name, branch_id)
                                 VALUES (%s, %s, %s, %s, %s)
                              """, (new_username.strip(), hashed, new_level, new_fullname.strip(), selected_branch))
-                        st.success(f "✅ User '{new_username}' successfully created. ")
+                        st.success(f"✅ User '{new_username}' successfully created. ")
                         st.rerun()
                     except Exception as e:
-                        st.error(f "❌ Error creating user: {e} ")
+                        st.error(f"❌ Error creating user: {e} ")
 
     st.divider()
 
@@ -855,7 +855,7 @@ def page_users():
              """)
             users_data = c.fetchall()
             
-            user_dict = {f "{u['username']} - {u['full_name']} ({u['branch_name']}) ": u for u in users_data if u['id'] != st.session_state.user_id}
+            user_dict = {f"{u['username']} - {u['full_name']} ({u['branch_name']}) ": u for u in users_data if u['id'] != st.session_state.user_id}
             
             if user_dict:
                 selected_user_key = st.selectbox( "Select User to Edit ", list(user_dict.keys()))
@@ -863,7 +863,7 @@ def page_users():
                 
                 col1, col2 = st.columns(2)
                 with col1:
-                    st.markdown(f "**Current Agency:** {selected_user['branch_name']} ")
+                    st.markdown(f"**Current Agency:** {selected_user['branch_name']} ")
                 
                 with col2:
                     c.execute( "SELECT id, name FROM branches WHERE active=1 ORDER BY name ")
@@ -884,7 +884,7 @@ def page_users():
                             with get_db() as conn2:
                                 c2 = conn2.cursor()
                                  c2.execute( "UPDATE users SET branch_id = %s WHERE id = %s ", (new_branch_id, selected_user['id']))
-                            st.success(f "✅ {selected_user['username']}'s agency updated to **{new_branch_name}** ")
+                            st.success(f"✅ {selected_user['username']}'s agency updated to **{new_branch_name}** ")
                             st.rerun()
                         else:
                             st.info( "ℹ️ Same agency selected. ")
@@ -906,7 +906,7 @@ def page_users():
             users_data = c.fetchall()
 
         if users_data:
-            user_list = {f "{u['username']} ({u['full_name']}) ": u for u in users_data if u['id'] != st.session_state.user_id}
+            user_list = {f"{u['username']} ({u['full_name']}) ": u for u in users_data if u['id'] != st.session_state.user_id}
             
             if user_list:
                 col1, col2 = st.columns(2)
@@ -923,14 +923,14 @@ def page_users():
                             with get_db() as conn2:
                                 c2 = conn2.cursor()
                                 c2.execute( "UPDATE users SET password = %s WHERE id = %s ", (hashed, user_id))
-                            st.success(f "✅ Password updated for {selected_user_pass} ")
+                            st.success(f"✅ Password updated for {selected_user_pass} ")
                             st.rerun()
                         else:
                             st.error( " Enter a password ")
                 
                 with col2:
                     st.markdown( "### 🗑️ Delete User ")
-                    delete_list = {f "{u['username']} - {u['full_name']} ": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
+                    delete_list = {f"{u['username']} - {u['full_name']} ": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
                     
                     if delete_list:
                         selected_delete = st.selectbox( "Select User to Delete ", list(delete_list.keys()), key= "delete_user_select ")
@@ -941,7 +941,7 @@ def page_users():
                             with get_db() as conn2:
                                  c2 = conn2.cursor()
                                 c2.execute( "DELETE FROM users WHERE id = %s ", (user_id,))
-                            st.success(f "✅ User {selected_delete} Deleted ")
+                            st.success(f"✅ User {selected_delete} Deleted ")
                             st.rerun()
                     else:
                         st.info( "ℹ️ No other users to delete. ")
@@ -968,13 +968,13 @@ def page_users():
                             c = conn.cursor()
                             c.execute( "INSERT INTO branches (name, active) VALUES (%s, %s) ", 
                                       (new_branch_name.strip(), 1 if is_active_default else 0))
-                        st.success(f "✅ Agency '{new_branch_name}' created successfully! ")
+                        st.success(f"✅ Agency '{new_branch_name}' created successfully! ")
                         st.rerun()
                     except Exception as e:
                         if  "duplicate key " in str(e).lower() or  "unique " in str(e).lower():
-                            st.error(f "❌ Agency '{new_branch_name}' already exists. ")
+                            st.error(f"❌ Agency '{new_branch_name}' already exists. ")
                         else:
-                            st.error(f "❌ Error: {e} ")
+                            st.error(f"❌ Error: {e} ")
 
     st.divider()
 
@@ -990,10 +990,10 @@ def page_users():
                 col_a, col_b, col_c, col_d = st.columns([4, 2, 1, 1])
                 
                 with col_a:
-                    new_name = st.text_input(f "Agency #{b['id']} ", value=b['name'], key=f "branch_name_{b['id']} ")
+                    new_name = st.text_input(f"Agency #{b['id']} ", value=b['name'], Key=f"branch_name_{b['id']} ")
                     
                 with col_b:
-                    if st.button( "💾 Update Name ", key=f "upd_branch_{b['id']} "):
+                    if st.button( "💾 Update Name ", Key=f"upd_branch_{b['id']} "):
                         new_name_clean = new_name.strip()
                         if not new_name_clean:
                             st.warning( "❌ Name cannot be empty. ")
@@ -1004,26 +1004,26 @@ def page_users():
                                 with get_db() as conn2:
                                     c2 = conn2.cursor()
                                      c2.execute( "UPDATE branches SET name = %s WHERE id = %s ", (new_name_clean, b['id']))
-                                st.success(f "✅ Renamed: '{b['name']}' → '{new_name_clean}' ")
+                                st.success(f"✅ Renamed: '{b['name']}' → '{new_name_clean}' ")
                                 st.rerun()
                             except Exception as e:
                                 err = str(e).lower()
                                 if  "duplicate key " in err or  "unique " in err:
-                                    st.error(f "❌ Name '{new_name_clean}' already exists. ")
+                                    st.error(f"❌ Name '{new_name_clean}' already exists. ")
                                 else:
-                                    st.error(f "❌ DB Error: {e} ")
+                                    st.error(f"❌ DB Error: {e} ")
                                 
                 with col_c:
                     is_active = b['active'] == 1
-                    new_active = st.checkbox( "Active ", value=is_active, key=f "branch_act_{b['id']} ")
+                    new_active = st.checkbox( "Active ", value=is_active, Key=f"branch_act_{b['id']} ")
                     
                 with col_d:
-                    if st.button( "💾 Status ", key=f "stat_branch_{b['id']} "):
+                    if st.button( "💾 Status ", Key=f"stat_branch_{b['id']} "):
                         if new_active != is_active:
                             with get_db() as conn2:
                                 c2 = conn2.cursor()
                                 c2.execute( "UPDATE branches SET active = %s WHERE id = %s ", (1 if new_active else 0, b['id']))
-                            st.success(f "✅ Status updated for {b['name']} ")
+                            st.success(f"✅ Status updated for {b['name']} ")
                             st.rerun()
         else:
             st.info( "📭 No agencies found in database. ")
@@ -1047,12 +1047,12 @@ def page_public_ingress_level0():
         if st.button( "✅ Confirm Agency and Continue ", type= "primary ", use_container_width=True):
             st.session_state.guest_branch_id = branch_dict[selected_branch_name]
             st.session_state.guest_branch_name = selected_branch_name
-             st.success(f "✅ Agency set up: **{selected_branch_name}** ")
+             st.success(f"✅ Agency set up: **{selected_branch_name}** ")
             st.rerun()
         
         st.stop() 
 
-    st.info(f "📍 Selected agency: **{st.session_state.guest_branch_name}** ")
+    st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}** ")
 
     with st.form( "guest_ingress_form ", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
@@ -1166,7 +1166,7 @@ def main():
     if 'logged_i n' not in st.session_state:
         login_page()
     else:
-        st.sidebar.markdown(f """
+        st.sidebar.markdown(f"""
          <div style='text-align:center; padding: 20px 0;' >
              <h1 style='color:#00d4ff; margin:0; font-size:2.4em;' >🦈 HARK </h1 >
              <p style='color:#94a3b8; margin:10px 0 0 0;' >
