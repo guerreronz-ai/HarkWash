@@ -153,6 +153,14 @@ def init_database():
         conn.commit()
 
 # ==================== CONSTANTES ====================
+
+TIME_12H_OPTIONS = []
+for h in range(24):
+    for m in [0, 15, 30, 45]:
+        # Generamos la hora en formato AM/PM (09:00 AM, 01:00 PM, etc.)
+        dt_obj = datetime(2026, 5, 2, h, m) 
+        TIME_12H_OPTIONS.append(dt_obj.strftime("%I:%M %p"))
+
 SERVICES_LIST = [
     "Service Wash", "Loaner", "Photo", "Full Detail the customer",
     "Zaktek", "Show Room", "Full Detail for line", "Sold Detail", "Sold use car", "Sold new car"
@@ -303,7 +311,7 @@ def page_ingress():
                 st.info("ℹ️ *Full Detail for Line* does not require specific date/time.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
-                req_time = st.time_input("Required Time", value=dt_time(9, 0), key="time_in")
+                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
         urgent = st.checkbox("🚨 Waiting Customer")
         
@@ -336,7 +344,7 @@ def page_ingress():
                     tag.strip().upper() if tag and req_type in ["tag", "both"] else None,
                     brand.strip() if brand else None, model.strip() if model else None,
                     req_day.strftime("%Y-%m-%d") if req_day else None,
-                    req_time.strftime("%I:%M %p") if req_time else None,
+                    req_time if req_time else None,
                     service, notes.strip(), 1 if urgent else 0, st.session_state.branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
@@ -884,7 +892,7 @@ def page_public_ingress_level0():
                 st.info("ℹ️ Full Detail for line does not require a specific date/time.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="guest_day")
-                req_time = st.time_input("Required Time", value=dt_time(9, 0), key="guest_time")
+                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
             notes = st.text_area("Notes", placeholder="Observations...", key="guest_notes")
         urgent = st.checkbox("🚨 Waiting Customer")
 
@@ -905,7 +913,7 @@ def page_public_ingress_level0():
                     vin.strip().upper() if vin else None, tag.strip().upper() if tag else None,
                     brand.strip() if brand else None, model.strip() if model else None,
                     req_day.strftime("%Y-%m-%d") if req_day else None,
-                    req_time.strftime("%I:%M %p") if req_time else None,
+                    req_time if req_time else None,
                     service, notes.strip(), 1 if urgent else 0, st.session_state.guest_branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
