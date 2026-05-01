@@ -11,19 +11,19 @@ from contextlib import contextmanager
 from io import BytesIO
 import os
 import time
-==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
+#==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
 st.set_page_config(
     page_title="HARK - Management System",
     layout="wide",
     page_icon="🦈",
     initial_sidebar_state="expanded"
 )
-==================== LOGO HARK ====================
+#==================== LOGO HARK ====================
 st.logo(
     "hark_logo.png",
     size="large"
 )
-==================== CSS Profesional ====================
+#==================== CSS Profesional ====================
 st.markdown("""
 <style>
 .stApp {
@@ -85,7 +85,7 @@ h1, h2, h3 {
 }
 </style>
 """, unsafe_allow_html=True)
-==================== BASE DE DATOS ====================
+#==================== BASE DE DATOS ====================
 @contextmanager
 def get_db():
     conn = None
@@ -174,7 +174,6 @@ def init_database():
         if c.fetchone()['total'] == 0:
             c.execute( "INSERT INTO branches (name) VALUES ('BMW Arlington'), ('Five Star Subaru'), ('Vandergriff Acura') ")
 
-        # Datos iniciales - Users
         c.execute( "SELECT COUNT(*) as total FROM users ")
         if c.fetchone()['total'] == 0:
             c.execute( "SELECT id, name FROM branches ")
@@ -201,7 +200,7 @@ def init_database():
         
         conn.commit()
 
-==================== CONSTANTES ====================
+#==================== CONSTANTES ====================
 SERVICES_LIST = [
      "Service Wash ",  "Loaner ",  "Photo ",  "Full Detail the customer ",
      "Zaktek ",  "Show Room ",  "Full Detail for line ",  "Sold Detail ", "Sold use car ",  "Sold new car "
@@ -218,7 +217,7 @@ SERVICE_FIELD_REQUIREMENTS = {
      "Sold use car ":  "vin ",
      "Sold new car ":  "vin "
 }
-==================== FUNCIONES AUXILIARES ====================
+#==================== FUNCIONES AUXILIARES ====================
 def get_user_preference(user_id, key, default=None):
     with get_db() as conn:
         c = conn.cursor()
@@ -293,7 +292,7 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
     except Exception as e:
         return  "#6c757d ",  "⚠️ Error ",  "-"
 
-==================== PÁGINAS ====================
+#==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
     with st.form( "login_form "):
@@ -1143,7 +1142,7 @@ def page_public_ingress_level0():
                 del st.session_state[key]
             st.rerun()
 
-==================== MAIN ====================
+#==================== MAIN ====================
 def main():
     init_database()
     
