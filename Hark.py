@@ -879,8 +879,8 @@ def page_public_ingress_level0():
         with col1:
             service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
-            vin = st.text_input("VIN Number *", key="guest_vin")
-            tag = st.text_input("TAG Number *", key="guest_tag")
+            vin = st.text_input("VIN Number", key="guest_vin")
+            tag = st.text_input("TAG Number", key="guest_tag")
             brand = st.text_input("Brand", placeholder="", key="guest_brand")
         with col2:
             model = st.text_input("Model", placeholder="", key="guest_model")
