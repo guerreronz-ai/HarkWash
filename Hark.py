@@ -369,7 +369,7 @@ def page_pending():
         if st.session_state.level < 3:
             base_query = """
                 SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, b.name as agency_name,
-                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name
+                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name, v.notes
                 FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id
                 WHERE v.status = 'Pending' AND v.branch_id = %s
             """
@@ -381,7 +381,7 @@ def page_pending():
         else:
             base_query = """
                 SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, b.name as agency_name,
-                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name
+                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name, v.notes
                 FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id WHERE v.status = 'Pending'
             """
             params = ()
@@ -414,7 +414,8 @@ def page_pending():
                     "Required Day": v['required_day'] or "-", "Required Time": v['required_time'] or "-",
                     "Received": v['reception_date'], "Time Info": info,
                     "Urgent": "🚨" if v['is_urgent'] else "",
-                    "Who's Done": "", "_id": v['id'], "_color": color
+                    "Who's Done": "", "_id": v['id'], "_color": color,
+                    "Notes ": v.get('notes') or "-"
                 })
 
             df = pd.DataFrame(rows)
@@ -427,7 +428,7 @@ def page_pending():
                 "Agency": st.column_config.TextColumn(disabled=True), "Responsible": st.column_config.TextColumn(disabled=True),
                 "Required Day": st.column_config.TextColumn(disabled=True), "Required Time": st.column_config.TextColumn(disabled=True),
                 "Received": st.column_config.TextColumn(disabled=True), "Time Info": st.column_config.TextColumn(disabled=True),
-                "Urgent": st.column_config.TextColumn(disabled=True),
+                "Urgent": st.column_config.TextColumn(disabled=True), "Notes ": st.column_config.TextColumn(disabled=True)
             }
 
             edited_df = st.data_editor(
