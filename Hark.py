@@ -240,10 +240,7 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
                 return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
             else:
                 return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
-        
-        if not req_day_str or not req_time_str:
-            return "#6c757d", "⚠️ No Deadline", "-"
-        
+                
         try:
             req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %I:%M %p")
         except ValueError:
@@ -446,8 +443,7 @@ def page_pending():
                 })
 
             df = pd.DataFrame(rows)
-
-            # ==================== NUEVO ORDEN Y COLUMNAS VISIBLES ====================
+            
             column_order = [
                 "Complete", "Status", "Urgent", "TAG", "VIN", 
                 "Required Day", "Required Time", "Received", "Notes", 
