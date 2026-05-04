@@ -214,11 +214,11 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         if service_clean == "Service Wash":
             hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
             if hours_since_reception < 0.13:
-                return "#28a745", "✅ On Time", f"{hours_since_reception:.1f}h since reception"
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
             elif hours_since_reception < 0.3:
-                return "#ffc107", "⚠️ Attention", f"{hours_since_reception:.1f}h since reception"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
             else:
-                return "#dc3545", "🚨 Delayed", f"{hours_since_reception:.1f}h since reception"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
         
         if not req_day_str or not req_time_str:
             return "#6c757d", "⚠️ No Deadline", "-"
@@ -235,11 +235,11 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         if service_clean == "Full Detail for line":
             hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
             if hours_since_reception < 24:
-                return "#28a745", "✅ On Time", f"{hours_since_reception:.1f}h since reception"
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
             elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Attention", f"{hours_since_reception:.1f}h since reception"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
             else:
-                return "#dc3545", "🚨 Delayed", f"{hours_since_reception:.1f}h since reception"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
         
         if not req_day_str or not req_time_str:
             return "#6c757d", "⚠️ No Deadline", "-"
@@ -255,18 +255,18 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         
         if service_clean in ["Full Detail the customer", "Zaktek", "Sold Detail", "Sold new car", "Sold use car"]:
             if hours_until_deadline > 2.0:
-                return "#28a745", "✅ Ample Time", f"{hours_until_deadline:.1f}h until deadline"
+                return "#28a745", "✅ In Time", f"{hours_until_deadline:.1f}h until deadline"
             elif hours_until_deadline > 1.0:
-                return "#ffc107", "⚠️ Medium Time", f"{hours_until_deadline:.1f}h until deadline"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_until_deadline:.1f}h until deadline"
             else:
-                return "#dc3545", "🚨 Critical", f"{hours_until_deadline:.1f}h until deadline"
+                return "#dc3545", "🚨 Out of Time", f"{hours_until_deadline:.1f}h until deadline"
         else:
             if hours_since_reception < 24:
-                return "#28a745", "✅ On Time", f"{hours_since_reception:.1f}h since reception"
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
             elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Attention", f"{hours_since_reception:.1f}h since reception"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
             else:
-                return "#dc3545", "🚨 Delayed", f"{hours_since_reception:.1f}h since reception"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
     except Exception as e:
         return "#6c757d", "⚠️ Error", "-"
 
