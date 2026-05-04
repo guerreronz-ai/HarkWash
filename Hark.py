@@ -15,9 +15,19 @@ import os
 st.set_page_config(
     page_title="HARK - Management System",
     layout="wide",
-    page_icon="hark_logo.ico",
+    page_icon="hark_logo.ico",        
     initial_sidebar_state="expanded"
 )
+
+st.markdown("""
+<head>
+    <link rel="apple-touch-icon" sizes="180x180" href="https://yourdomain.com/hark_logo_180.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="hark_logo_32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="hark_logo_16.png">
+    <meta name="apple-mobile-web-app-title" content="HARK">
+    <meta name="theme-color" content="#00d4ff">
+</head>
+""", unsafe_allow_html=True)
 
 # ==================== LOGO HARK ====================
 st.logo(
