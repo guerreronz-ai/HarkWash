@@ -205,65 +205,64 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         if not reception_str:
             return "#6c757d", "⚠️ No Date", "-"
         
+        # Parse reception date
         try:
             rec_date = datetime.strptime(reception_str, "%Y-%m-%d %I:%M %p")
         except ValueError:
             rec_date = datetime.strptime(reception_str, "%Y-%m-%d %H:%M")
         rec_date = rec_date.replace(tzinfo=dallas_tz)
 
+        hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
+
+        # ==================== SERVICE WASH ====================
+        
         if service_clean == "Service Wash":
-            hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
-            if hours_since_reception < 0.13:
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
-            elif hours_since_reception < 0.3:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
+            if hours_since_reception < 0.25:      # ~15 minutos
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
+            elif hours_since_reception < 0.5:     # ~30 minutos
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
+
+        # ==================== FULL DETAIL FOR LINE ====================
+        
+        if service_clean == "Full Detail for line":
+            if hours_since_reception < 24:
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
+            elif hours_since_reception < 48:
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
+            else:
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
+
+        # ==================== OTROS SERVICIOS (con fecha/hora requerida) ====================
         
         if not req_day_str or not req_time_str:
-            return "#6c757d", "⚠️ No Deadline", "-"
-        
+            return "#6c757d", "⚠️ No Deadline", f"{hours_since_reception:.1f}h since"
+
         try:
             req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %I:%M %p")
         except ValueError:
             req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %H:%M")
         req_date = req_date.replace(tzinfo=dallas_tz)
         
-        hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
         hours_until_deadline = (req_date - now_dallas).total_seconds() / 3600
-      
-        if service_clean == "Full Detail for line":
-            hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
-            if hours_since_reception < 24:
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
-            elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
-            else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
-                
-        try:
-            req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %I:%M %p")
-        except ValueError:
-            req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %H:%M")
-        req_date = req_date.replace(tzinfo=dallas_tz)
-        
-        hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
-        hours_until_deadline = (req_date - now_dallas).total_seconds() / 3600
-        
+
         if service_clean in ["Full Detail the customer", "Zaktek", "Sold Detail", "Sold new car", "Sold use car"]:
             if hours_until_deadline > 2.0:
-                return "#28a745", "✅ In Time", f"{hours_until_deadline:.1f}h until deadline"
+                return "#28a745", "✅ In Time", f"{hours_until_deadline:.1f}h until"
             elif hours_until_deadline > 1.0:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_until_deadline:.1f}h until deadline"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_until_deadline:.1f}h until"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_until_deadline:.1f}h until deadline"
+                return "#dc3545", "🚨 Out of Time", f"{hours_until_deadline:.1f}h until"
         else:
+            # Resto de servicios por tiempo desde recepción
             if hours_since_reception < 24:
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h since reception"
+                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
             elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h since reception"
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h since reception"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
+
     except Exception as e:
         return "#6c757d", "⚠️ Error", "-"
 
@@ -368,6 +367,7 @@ def page_ingress():
                 ))
             st.success("✅ Vehicle registered successfully")
             st.rerun()
+
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
     if st.session_state.level < 3:
@@ -428,7 +428,7 @@ def page_pending():
                 rows.append({
                     "Complete": False,
                     "Status": msg,
-                    "Urgent": "🚨" if v['is_urgent'] else "",
+                    "Urgent": "🚨 WC" if v['is_urgent'] else "",
                     "TAG": v['tag_number'],
                     "VIN": v['vin_number'] or "-",
                     "Required Day": v['required_day'] or "-",
@@ -443,7 +443,8 @@ def page_pending():
                 })
 
             df = pd.DataFrame(rows)
-            
+
+            # ==================== NUEVO ORDEN Y COLUMNAS VISIBLES ====================
             column_order = [
                 "Complete", "Status", "Urgent", "TAG", "VIN", 
                 "Required Day", "Required Time", "Received", "Notes", 
@@ -507,7 +508,7 @@ def page_pending():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
-                    
+
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
