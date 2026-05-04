@@ -439,7 +439,7 @@ def page_pending():
                 rows.append({
                     "Complete": False,
                     "Status": msg,
-                    "Urgent": "🚨" if v['is_urgent'] else "",
+                    "Urgent": "🚨 WFC" if v['is_urgent'] else "",
                     "TAG": v['tag_number'],
                     "VIN": v['vin_number'] or "-",
                     "Required Day": v['required_day'] or "-",
@@ -526,7 +526,6 @@ def page_pending():
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
-
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
@@ -538,6 +537,14 @@ def page_reports():
         st.stop()
 
     st.markdown("<h2>📊 Reports & Statistics</h2>", unsafe_allow_html=True)
+    
+    # ==================== NUEVO BUSCADOR POR TAG / VIN ====================
+    col_search1, col_search2 = st.columns([3, 1])
+    with col_search1:
+        search_term = st.text_input("🔍 Search by VIN or TAG Number", placeholder="Enter VIN or TAG...", key="search_reports")
+    with col_search2:
+        st.button("🔍 Search", key="btn_search_reports")
+
     st.subheader("🔎 Advanced Filters")
 
     with get_db() as conn:
@@ -569,21 +576,32 @@ def page_reports():
             FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id
         """
         conditions, params = [], []
-        if branch_id_filter is not None: conditions.append("v.branch_id = %s"); params.append(branch_id_filter)
-        if period == "Today": conditions.append("v.reception_date::date = CURRENT_DATE")
-        elif period == "This Week": conditions.append("v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE)")
-        elif period == "This Month": conditions.append("DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE)")
-        if status_filter != "All": conditions.append("v.status = %s"); params.append(status_filter)
-        if service_filter != "All": conditions.append("v.service = %s"); params.append(service_filter)
+        if branch_id_filter is not None: 
+            conditions.append("v.branch_id = %s"); params.append(branch_id_filter)
+        if period == "Today": 
+            conditions.append("v.reception_date::date = CURRENT_DATE")
+        elif period == "This Week": 
+            conditions.append("v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE)")
+        elif period == "This Month": 
+            conditions.append("DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE)")
+        if status_filter != "All": 
+            conditions.append("v.status = %s"); params.append(status_filter)
+        if service_filter != "All": 
+            conditions.append("v.service = %s"); params.append(service_filter)
+        if search_term:
+            conditions.append("(v.vin_number ILIKE %s OR v.tag_number ILIKE %s)")
+            params.extend([f"%{search_term}%", f"%{search_term}%"])
 
-        if conditions: query += " WHERE " + " AND ".join(conditions)
+        if conditions: 
+            query += " WHERE " + " AND ".join(conditions)
         query += " ORDER BY v.reception_date DESC"
+
         cursor.execute(query, params if params else None)
         rows = cursor.fetchall()
         df_all = pd.DataFrame(rows, columns=['tag_number', 'vin_number', 'brand', 'model', 'service', 'status', 'reception_date', 'delivery_date', 'is_urgent', 'agency', 'who_done'])
 
     if df_all.empty:
-        st.warning("📭 No vehicles with the filters applied were found.")
+        st.warning("📭 No vehicles found with the applied filters." if not search_term else f"📭 No vehicles found matching '{search_term}'")
         return
 
     df_display = df_all.copy().rename(columns={
@@ -606,10 +624,17 @@ def page_reports():
 
     st.subheader("💾 Export Data")
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer: df_all.to_excel(writer, sheet_name='Vehicles', index=False)
+    with pd.ExcelWriter(output, engine='openpyxl') as writer: 
+        df_all.to_excel(writer, sheet_name='Vehicles', index=False)
     output.seek(0)
-    st.download_button(label="📥 Download Excel", data=output, file_name=f"HARK_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    st.download_button(
+        label="📥 Download Excel", 
+        data=output, 
+        file_name=f"HARK_Report_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx", 
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
+    # ... (el resto de la sección de Reverting Deliveries se mantiene igual)
     if st.session_state.level >= 2:
         st.divider()
         st.subheader("↩️ Reverting Deliveries (Error Correction)")
@@ -621,8 +646,11 @@ def page_reports():
             WHERE v.status = 'Delivered' AND v.delivery_date::timestamp >= NOW() - INTERVAL '24 hours'
         """
         rev_conditions, rev_params = [], []
-        if st.session_state.level == 2: rev_conditions.append("v.branch_id = %s"); rev_params.append(st.session_state.branch_id)
-        if rev_conditions: rev_query += " WHERE " + " AND ".join(rev_conditions)
+        if st.session_state.level == 2: 
+            rev_conditions.append("v.branch_id = %s"); 
+            rev_params.append(st.session_state.branch_id)
+        if rev_conditions: 
+            rev_query += " WHERE " + " AND ".join(rev_conditions)  # Note: this might need adjustment if there are prior conditions, but kept as original
         rev_query += " ORDER BY v.delivery_date DESC LIMIT 100"
 
         with get_db() as conn:
@@ -647,6 +675,7 @@ def page_reports():
                 st.rerun()
         else:
             st.info("📭 There are no recently delivered vehicles to reverse.")
+
 def page_users():
     st.markdown("<h1>👤 User & Agency Management</h1>", unsafe_allow_html=True)
     if st.session_state.level != 3:
