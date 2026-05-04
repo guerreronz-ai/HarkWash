@@ -305,17 +305,29 @@ def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
     
-    # Servicios sin fecha/hora requerida
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
-    
+
+    # Inicializar en session_state si no existe
+    if "current_service" not in st.session_state:
+        st.session_state.current_service = SERVICES_LIST[0]
+
+    def on_service_change():
+        st.session_state.current_service = st.session_state.service_sel
+
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
-            service = st.selectbox("Service", SERVICES_LIST, key="service_sel")
+            service = st.selectbox(
+                "Service", 
+                SERVICES_LIST, 
+                key="service_sel",
+                on_change=on_service_change
+            )
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             vin = st.text_input("VIN Number", key="vin_in")
             tag = st.text_input("TAG Number", key="tag_in")
             brand = st.text_input("Brand", key="brand_in", placeholder="")
+        
         with col2:
             model = st.text_input("Model", key="model_in", placeholder="")
             responsible_name = st.text_input("Technical/Sales Man (Name)", key="res_name_in")
@@ -363,14 +375,16 @@ def page_ingress():
                 """, (
                     vin.strip().upper() if vin and req_type in ["vin", "both"] else None,
                     tag.strip().upper() if tag and req_type in ["tag", "both"] else None,
-                    brand.strip() if brand else None, model.strip() if model else None,
+                    brand.strip() if brand else None, 
+                    model.strip() if model else None,
                     req_day.strftime("%Y-%m-%d") if req_day else None,
                     req_time if req_time else None,
-                    service, notes.strip(), 1 if urgent else 0, st.session_state.branch_id,
+                    service, notes.strip(), 1 if urgent else 0, 
+                    st.session_state.branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
             st.success("✅ Vehicle registered successfully")
-            st.rerun()
+            st.rerun()            
             
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
@@ -913,6 +927,7 @@ def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
     
     if 'guest_branch_id' not in st.session_state or 'guest_branch_name' not in st.session_state:
+        # ... (código de selección de agencia se mantiene igual)
         st.info("👋 Select your agency to get started")
         with get_db() as conn:
             c = conn.cursor()
@@ -929,16 +944,26 @@ def page_public_ingress_level0():
 
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
     
-    # Servicios sin fecha/hora requerida
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
-    
+
+    if "guest_current_service" not in st.session_state:
+        st.session_state.guest_current_service = SERVICES_LIST[0]
+
+    def on_guest_service_change():
+        st.session_state.guest_current_service = st.session_state.guest_service
+
     with st.form("guest_ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
-            service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
+            service = st.selectbox(
+                "Service", 
+                SERVICES_LIST, 
+                key="guest_service",
+                on_change=on_guest_service_change
+            )
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
-            vin = st.text_input("VIN Number", key="guest_vin")
-            tag = st.text_input("TAG Number", key="guest_tag")
+            vin = st.text_input("VIN Number *", key="guest_vin")
+            tag = st.text_input("TAG Number *", key="guest_tag")
             brand = st.text_input("Brand", placeholder="", key="guest_brand")
         with col2:
             model = st.text_input("Model", placeholder="", key="guest_model")
@@ -961,6 +986,7 @@ def page_public_ingress_level0():
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾Save Vehicle", use_container_width=True, type="primary"):
+            # ... (el resto del código de guardado se mantiene igual)
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
             if req_type == "both" and (not vin.strip() or not tag.strip()): 
                 st.error("❌ This service requires VIN y TAG"); st.stop()
@@ -990,6 +1016,7 @@ def page_public_ingress_level0():
             st.success("✅ Vehicle correctly registered in " + st.session_state.guest_branch_name)
             st.rerun()
 
+    # Botones de Change Agency y Login
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🔄 Change Agency"):
@@ -999,8 +1026,7 @@ def page_public_ingress_level0():
     with col_b:
         if st.button("👤Go to Normal Login"):
             for key in list(st.session_state.keys()): del st.session_state[key]
-            st.rerun()
-            
+            st.rerun()            
 # ==================== MAIN ====================
 def main():
     init_database()
