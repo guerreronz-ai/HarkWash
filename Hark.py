@@ -307,7 +307,7 @@ def page_ingress():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Service fuera del form para que actualice en tiempo real
+    # Service fuera del form para que se actualice correctamente
     service = st.selectbox("Service", SERVICES_LIST, key="service_sel")
 
     with st.form("ingress_form", clear_on_submit=True):
@@ -329,7 +329,7 @@ def page_ingress():
             if service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
-                st.info(f"ℹ️ **{service}** no requiere fecha ni hora de entrega.")
+                st.info(f"ℹ️ **{service}** does not require delivery date or time.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
@@ -373,8 +373,9 @@ def page_ingress():
                     st.session_state.branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
-            st.success("✅ Vehicle registered successfully")
-            st.rerun()        
+                
+            st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
+            st.rerun() 
             
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
@@ -916,7 +917,6 @@ def page_users():
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
     
-    # Selección de agencia (si no está seleccionada)
     if 'guest_branch_id' not in st.session_state or 'guest_branch_name' not in st.session_state:
         st.info("👋 Select your agency to get started")
         with get_db() as conn:
@@ -934,13 +934,11 @@ def page_public_ingress_level0():
 
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
     
-    # ==================== CONFIGURACIÓN ====================
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Service fuera del form para que se actualice en tiempo real
+    # Service fuera del form
     service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
 
-    # Formulario
     with st.form("guest_ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -960,7 +958,7 @@ def page_public_ingress_level0():
             if service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
-                st.info(f"ℹ️ **{service}** no requiere fecha ni hora de entrega.")
+                st.info(f"ℹ️ **{service}** does not require delivery date or time.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="guest_day")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="guest_time_in")
@@ -970,7 +968,6 @@ def page_public_ingress_level0():
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
-            # Validaciones
             if req_type == "both" and (not vin.strip() or not tag.strip()): 
                 st.error("❌ This service requires VIN and TAG"); st.stop()
             elif req_type == "vin" and not vin.strip(): 
@@ -978,7 +975,6 @@ def page_public_ingress_level0():
             elif req_type == "tag" and not tag.strip(): 
                 st.error("❌ This service requires TAG"); st.stop()
 
-            # Guardar en base de datos
             dallas_now = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %I:%M %p")
             with get_db() as conn:
                 c = conn.cursor()
@@ -997,23 +993,20 @@ def page_public_ingress_level0():
                     st.session_state.guest_branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
-            st.success(f"✅ Vehicle correctly registered in **{st.session_state.guest_branch_name}**")
+            
+            st.success(f"✅ Vehicle successfully registered in **{st.session_state.guest_branch_name}**")
             st.rerun()
 
-    # Botones inferiores
     col_a, col_b = st.columns(2)
     with col_a:
         if st.button("🔄 Change Agency"):
-            if 'guest_branch_id' in st.session_state: 
-                del st.session_state.guest_branch_id
-            if 'guest_branch_name' in st.session_state: 
-                del st.session_state.guest_branch_name
+            if 'guest_branch_id' in st.session_state: del st.session_state.guest_branch_id
+            if 'guest_branch_name' in st.session_state: del st.session_state.guest_branch_name
             st.rerun()
     with col_b:
         if st.button("👤 Go to Normal Login"):
-            for key in list(st.session_state.keys()): 
-                del st.session_state[key]
-            st.rerun()  
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            st.rerun()
             
 # ==================== MAIN ====================
 def main():
