@@ -308,6 +308,7 @@ def login_page():
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
+    
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -319,17 +320,25 @@ def page_ingress():
         with col2:
             model = st.text_input("Model", key="model_in", placeholder="")
             responsible_name = st.text_input("Technical/Sales Man (Name)", key="res_name_in")
+        
         with col3:
             today = datetime.now().date()
             default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
-            if service == "Full Detail for line":
+            
+            # ==================== NUEVA LÓGICA ====================
+            if service in ["Service Wash", "Full Detail for line"]:
                 req_day = None
                 req_time = None
-                st.info("ℹ️ *Full Detail for Line* does not require specific date/time.")
+                if service == "Service Wash":
+                    st.info("ℹ️ Service Wash **no requiere** fecha ni hora de entrega.")
+                else:
+                    st.info("ℹ️ *Full Detail for Line* no requiere fecha/hora específica.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
+            
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
+        
         urgent = st.checkbox("🚨 Waiting Customer")
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
@@ -428,7 +437,7 @@ def page_pending():
                 rows.append({
                     "Complete": False,
                     "Status": msg,
-                    "Urgent": "🚨 WC" if v['is_urgent'] else "",
+                    "Urgent": "🚨" if v['is_urgent'] else "",
                     "TAG": v['tag_number'],
                     "VIN": v['vin_number'] or "-",
                     "Required Day": v['required_day'] or "-",
@@ -444,12 +453,18 @@ def page_pending():
 
             df = pd.DataFrame(rows)
 
-            # ==================== NUEVO ORDEN Y COLUMNAS VISIBLES ====================
-            column_order = [
-                "Complete", "Status", "Urgent", "TAG", "VIN", 
-                "Required Day", "Required Time", "Received", "Notes", 
-                "Responsible", "Who's Done", "Model"
-            ]
+            # ==================== ORDEN DE COLUMNAS SEGÚN SERVICIO ====================
+            if svc in ["Service Wash", "Full Detail for line"]:
+                column_order = [
+                    "Complete", "Status", "Urgent", "TAG", "VIN", 
+                    "Received", "Notes", "Responsible", "Who's Done", "Model"
+                ]
+            else:
+                column_order = [
+                    "Complete", "Status", "Urgent", "TAG", "VIN", 
+                    "Required Day", "Required Time", "Received", "Notes", 
+                    "Responsible", "Who's Done", "Model"
+                ]
 
             column_config = {
                 "Complete": st.column_config.CheckboxColumn("Complete", help="Mark as DONE", default=False),
@@ -897,6 +912,7 @@ def page_users():
 
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
+    
     if 'guest_branch_id' not in st.session_state or 'guest_branch_name' not in st.session_state:
         st.info("👋 Select your agency to get started")
         with get_db() as conn:
@@ -913,6 +929,7 @@ def page_public_ingress_level0():
         st.stop() 
 
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
+    
     with st.form("guest_ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -924,23 +941,35 @@ def page_public_ingress_level0():
         with col2:
             model = st.text_input("Model", placeholder="", key="guest_model")
             responsible_name = st.text_input("Responsible", key="guest_responsible")
+        
         with col3:
             today = datetime.now().date()
             default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
-            if service == "Full Detail for line":
-                req_day = None; req_time = None
-                st.info("ℹ️ Full Detail for line does not require a specific date/time.")
+            
+            # ==================== NUEVA LÓGICA PARA SERVICE WASH ====================
+            if service in ["Service Wash", "Full Detail for line"]:
+                req_day = None
+                req_time = None
+                if service == "Service Wash":
+                    st.info("ℹ️ Service Wash **no requiere** fecha ni hora de entrega.")
+                else:
+                    st.info("ℹ️ *Full Detail for Line* no requiere fecha/hora específica.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="guest_day")
-                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
+                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="guest_time_in")
+            
             notes = st.text_area("Notes", placeholder="Observations...", key="guest_notes")
+        
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾Save Vehicle", use_container_width=True, type="primary"):
             req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
-            if req_type == "both" and (not vin.strip() or not tag.strip()): st.error("❌ This service requires VIN y TAG"); st.stop()
-            elif req_type == "vin" and not vin.strip(): st.error("❌ This service requires VIN"); st.stop()
-            elif req_type == "tag" and not tag.strip(): st.error("❌ This service requires TAG"); st.stop()
+            if req_type == "both" and (not vin.strip() or not tag.strip()): 
+                st.error("❌ This service requires VIN y TAG"); st.stop()
+            elif req_type == "vin" and not vin.strip(): 
+                st.error("❌ This service requires VIN"); st.stop()
+            elif req_type == "tag" and not tag.strip(): 
+                st.error("❌ This service requires TAG"); st.stop()
 
             dallas_now = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %I:%M %p")
             with get_db() as conn:
@@ -950,11 +979,14 @@ def page_public_ingress_level0():
                      service, notes, is_urgent, branch_id, reception_date, status, responsible_name)
                     VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 """, (
-                    vin.strip().upper() if vin else None, tag.strip().upper() if tag else None,
-                    brand.strip() if brand else None, model.strip() if model else None,
+                    vin.strip().upper() if vin else None, 
+                    tag.strip().upper() if tag else None,
+                    brand.strip() if brand else None, 
+                    model.strip() if model else None,
                     req_day.strftime("%Y-%m-%d") if req_day else None,
                     req_time if req_time else None,
-                    service, notes.strip(), 1 if urgent else 0, st.session_state.guest_branch_id,
+                    service, notes.strip(), 1 if urgent else 0, 
+                    st.session_state.guest_branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
             st.success("✅ Vehicle correctly registered in " + st.session_state.guest_branch_name)
@@ -970,7 +1002,6 @@ def page_public_ingress_level0():
         if st.button("👤Go to Normal Login"):
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
-
 # ==================== MAIN ====================
 def main():
     init_database()
