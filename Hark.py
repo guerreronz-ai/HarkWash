@@ -309,6 +309,9 @@ def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
     
+    # Servicios sin fecha/hora requerida
+    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -325,14 +328,10 @@ def page_ingress():
             today = datetime.now().date()
             default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
             
-            # ==================== NUEVA LÓGICA ====================
-            if service in ["Service Wash", "Full Detail for line"]:
+            if service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
-                if service == "Service Wash":
-                    st.info("ℹ️ Service Wash **no requiere** fecha ni hora de entrega.")
-                else:
-                    st.info("ℹ️ *Full Detail for Line* no requiere fecha/hora específica.")
+                st.info(f"ℹ️ **{service}** no requiere fecha ni hora de entrega.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
@@ -376,7 +375,7 @@ def page_ingress():
                 ))
             st.success("✅ Vehicle registered successfully")
             st.rerun()
-
+            
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
     if st.session_state.level < 3:
@@ -425,6 +424,9 @@ def page_pending():
         st.warning(f"No pending vehicles were found that matched '{search_term}'" if search_term else "There are no pending vehicles.")
         return
 
+    # Servicios sin fecha/hora requerida
+    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+
     by_service = {}
     for v in all_v:
         by_service.setdefault(v['service'], []).append(v)
@@ -437,7 +439,7 @@ def page_pending():
                 rows.append({
                     "Complete": False,
                     "Status": msg,
-                    "Urgent": "🚨 WFC" if v['is_urgent'] else "",
+                    "Urgent": "🚨" if v['is_urgent'] else "",
                     "TAG": v['tag_number'],
                     "VIN": v['vin_number'] or "-",
                     "Required Day": v['required_day'] or "-",
@@ -453,8 +455,8 @@ def page_pending():
 
             df = pd.DataFrame(rows)
 
-            # ==================== ORDEN DE COLUMNAS SEGÚN SERVICIO ====================
-            if svc in ["Service Wash", "Full Detail for line"]:
+            # ==================== ORDEN DE COLUMNAS ====================
+            if svc in NO_REQUIRED_SERVICES:
                 column_order = [
                     "Complete", "Status", "Urgent", "TAG", "VIN", 
                     "Received", "Notes", "Responsible", "Who's Done", "Model"
@@ -523,6 +525,7 @@ def page_pending():
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
+
 
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
@@ -930,6 +933,9 @@ def page_public_ingress_level0():
 
     st.info(f"📍 Selected agency: **{st.session_state.guest_branch_name}**")
     
+    # Servicios sin fecha/hora requerida
+    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    
     with st.form("guest_ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -946,14 +952,10 @@ def page_public_ingress_level0():
             today = datetime.now().date()
             default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
             
-            # ==================== NUEVA LÓGICA PARA SERVICE WASH ====================
-            if service in ["Service Wash", "Full Detail for line"]:
+            if service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
-                if service == "Service Wash":
-                    st.info("ℹ️ Service Wash **no requiere** fecha ni hora de entrega.")
-                else:
-                    st.info("ℹ️ *Full Detail for Line* no requiere fecha/hora específica.")
+                st.info(f"ℹ️ **{service}** no requiere fecha ni hora de entrega.")
             else:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="guest_day")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="guest_time_in")
@@ -1002,6 +1004,7 @@ def page_public_ingress_level0():
         if st.button("👤Go to Normal Login"):
             for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
+            
 # ==================== MAIN ====================
 def main():
     init_database()
