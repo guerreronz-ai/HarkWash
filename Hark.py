@@ -198,74 +198,70 @@ def save_user_preference(user_id, key, value_list):
 
 def get_status_info(service, reception_str, req_day_str, req_time_str):
     try:
-        service_clean = service.strip() if service else ""
+        service_clean = (service or "").strip()
         dallas_tz = ZoneInfo("America/Chicago")
         now_dallas = datetime.now(dallas_tz)
         
         if not reception_str:
             return "#6c757d", "⚠️ No Date", "-"
         
-        # Parse reception date
+        # Parsear fecha de recepción
         try:
             rec_date = datetime.strptime(reception_str, "%Y-%m-%d %I:%M %p")
         except ValueError:
             rec_date = datetime.strptime(reception_str, "%Y-%m-%d %H:%M")
         rec_date = rec_date.replace(tzinfo=dallas_tz)
 
-        hours_since_reception = (now_dallas - rec_date).total_seconds() / 3600
+        hours_since = (now_dallas - rec_date).total_seconds() / 3600
 
-        # ==================== SERVICE WASH ====================
-        
-        if service_clean == "Service Wash":
-            if hours_since_reception < 0.25:      # ~15 minutos
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
-            elif hours_since_reception < 0.5:     # ~30 minutos
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
+        # ==================== SERVICIOS SIN FECHA REQUERIDA ====================
+        if service_clean in ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]:
+            if service_clean == "Service Wash":
+                if hours_since < 0.25:      # 15 minutos
+                    return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
+                elif hours_since < 0.5:     # 30 minutos
+                    return "#ffc107", "⚠️ Almost Due", f"{hours_since:.1f}h"
+                else:
+                    return "#dc3545", "🚨 Out of Time", f"{hours_since:.1f}h"
+            
+            # Full Detail for line y otros sin deadline específico
+            if hours_since < 24:
+                return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
+            elif hours_since < 48:
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since:.1f}h"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since:.1f}h"
 
-        # ==================== FULL DETAIL FOR LINE ====================
-        
-        if service_clean == "Full Detail for line":
-            if hours_since_reception < 24:
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
-            elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
-            else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
-
-        # ==================== OTROS SERVICIOS (con fecha/hora requerida) ====================
-        
+        # ==================== SERVICIOS CON FECHA/HORA REQUERIDA ====================
         if not req_day_str or not req_time_str:
-            return "#6c757d", "⚠️ No Deadline", f"{hours_since_reception:.1f}h since"
+            return "#6c757d", "⚠️ No Deadline", f"{hours_since:.1f}h"
 
         try:
             req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %I:%M %p")
         except ValueError:
             req_date = datetime.strptime(f"{req_day_str} {req_time_str}", "%Y-%m-%d %H:%M")
         req_date = req_date.replace(tzinfo=dallas_tz)
-        
-        hours_until_deadline = (req_date - now_dallas).total_seconds() / 3600
+
+        hours_until = (req_date - now_dallas).total_seconds() / 3600
 
         if service_clean in ["Full Detail the customer", "Zaktek", "Sold Detail", "Sold new car", "Sold use car"]:
-            if hours_until_deadline > 2.0:
-                return "#28a745", "✅ In Time", f"{hours_until_deadline:.1f}h until"
-            elif hours_until_deadline > 1.0:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_until_deadline:.1f}h until"
+            if hours_until > 2.0:
+                return "#28a745", "✅ In Time", f"{hours_until:.1f}h until"
+            elif hours_until > 1.0:
+                return "#ffc107", "⚠️ Almost Due", f"{hours_until:.1f}h until"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_until_deadline:.1f}h until"
+                return "#dc3545", "🚨 Out of Time", f"{hours_until:.1f}h until"
         else:
-            # Resto de servicios por tiempo desde recepción
-            if hours_since_reception < 24:
-                return "#28a745", "✅ In Time", f"{hours_since_reception:.1f}h"
-            elif hours_since_reception < 48:
-                return "#ffc107", "⚠️ Almost Due", f"{hours_since_reception:.1f}h"
+            # Otros servicios por tiempo transcurrido
+            if hours_since < 24:
+                return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
+            elif hours_since < 48:
+                return "#ffc107", "⚠️ Almost Due", f"{hours_since:.1f}h"
             else:
-                return "#dc3545", "🚨 Out of Time", f"{hours_since_reception:.1f}h"
+                return "#dc3545", "🚨 Out of Time", f"{hours_since:.1f}h"
 
-    except Exception as e:
+    except Exception:
         return "#6c757d", "⚠️ Error", "-"
-
 # ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
