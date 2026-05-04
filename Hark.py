@@ -371,7 +371,6 @@ def page_ingress():
                 ))
             st.success("✅ Vehicle registered successfully")
             st.rerun()
-
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
     if st.session_state.level < 3:
@@ -390,7 +389,8 @@ def page_pending():
         if st.session_state.level < 3:
             base_query = """
                 SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, b.name as agency_name,
-                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name, v.notes
+                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, 
+                       v.responsible_name, v.notes
                 FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id
                 WHERE v.status = 'Pending' AND v.branch_id = %s
             """
@@ -402,7 +402,8 @@ def page_pending():
         else:
             base_query = """
                 SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, b.name as agency_name,
-                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, v.responsible_name, v.notes
+                       v.service, v.reception_date, v.required_day, v.required_time, v.is_urgent, 
+                       v.responsible_name, v.notes
                 FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id WHERE v.status = 'Pending'
             """
             params = ()
@@ -428,47 +429,66 @@ def page_pending():
             for v in vehs:
                 color, msg, info = get_status_info(v['service'], v['reception_date'], v['required_day'], v['required_time'])
                 rows.append({
-                    "Complete": False, "Status": msg, "TAG": v['tag_number'],
-                    "VIN": v['vin_number'] or "-", "Brand": v.get('brand') or "-",
-                    "Model": v.get('model') or "-", "Agency": v.get('agency_name') or "-",
-                    "Responsible": v['responsible_name'] or "-",
-                    "Required Day": v['required_day'] or "-", "Required Time": v['required_time'] or "-",
-                    "Received": v['reception_date'], "Time Info": info,
+                    "Complete": False,
+                    "Status": msg,
                     "Urgent": "🚨" if v['is_urgent'] else "",
-                    "Who's Done": "", "_id": v['id'], "_color": color,
-                    "Notes ": v.get('notes') or "-"
+                    "TAG": v['tag_number'],
+                    "VIN": v['vin_number'] or "-",
+                    "Required Day": v['required_day'] or "-",
+                    "Required Time": v['required_time'] or "-",
+                    "Received": v['reception_date'],
+                    "Notes": v.get('notes') or "-",
+                    "Responsible": v['responsible_name'] or "-",
+                    "Who's Done": "",
+                    "Model": v.get('model') or "-",
+                    "_id": v['id'],
+                    "_color": color
                 })
 
             df = pd.DataFrame(rows)
+
+            # ==================== NUEVO ORDEN Y COLUMNAS VISIBLES ====================
+            column_order = [
+                "Complete", "Status", "Urgent", "TAG", "VIN", 
+                "Required Day", "Required Time", "Received", "Notes", 
+                "Responsible", "Who's Done", "Model"
+            ]
+
             column_config = {
                 "Complete": st.column_config.CheckboxColumn("Complete", help="Mark as DONE", default=False),
-                "Who's Done": st.column_config.TextColumn("Who's Done", help="Mandatory: Click here to type name", required=True),
-                "Status": st.column_config.TextColumn(disabled=True),
-                "TAG": st.column_config.TextColumn(disabled=True), "VIN": st.column_config.TextColumn(disabled=True),
-                "Brand": st.column_config.TextColumn(disabled=True), "Model": st.column_config.TextColumn(disabled=True),
-                "Agency": st.column_config.TextColumn(disabled=True), "Responsible": st.column_config.TextColumn(disabled=True),
-                "Required Day": st.column_config.TextColumn(disabled=True), "Required Time": st.column_config.TextColumn(disabled=True),
-                "Received": st.column_config.TextColumn(disabled=True), "Time Info": st.column_config.TextColumn(disabled=True),
-                "Urgent": st.column_config.TextColumn(disabled=True), "Notes ": st.column_config.TextColumn(disabled=True)
+                "Status": st.column_config.TextColumn("Status", disabled=True),
+                "Urgent": st.column_config.TextColumn("Urgent", disabled=True),
+                "TAG": st.column_config.TextColumn("TAG", disabled=True),
+                "VIN": st.column_config.TextColumn("VIN", disabled=True),
+                "Required Day": st.column_config.TextColumn("Required Day", disabled=True),
+                "Required Time": st.column_config.TextColumn("Required Time", disabled=True),
+                "Received": st.column_config.TextColumn("Received", disabled=True),
+                "Notes": st.column_config.TextColumn("Notes", disabled=True, width="medium"),
+                "Responsible": st.column_config.TextColumn("Responsible", disabled=True),
+                "Who's Done": st.column_config.TextColumn("Who's Done", help="Mandatory: Type name here", required=True),
+                "Model": st.column_config.TextColumn("Model", disabled=True),
             }
 
             edited_df = st.data_editor(
-                df.drop(columns=['_id', '_color']), column_config=column_config,
-                hide_index=True, use_container_width=True, num_rows="fixed",
+                df[column_order], 
+                column_config=column_config,
+                hide_index=True, 
+                use_container_width=True, 
+                num_rows="fixed",
                 key=f"editor_{svc.replace(' ', '_')}"
             )
 
         if st.button("✅ Done", key=f"btn_deliver_{svc.replace(' ', '_')}", use_container_width=True, type="primary"):
             selected_rows = edited_df[edited_df["Complete"] == True]
             if selected_rows.empty:
-                st.warning("⚠️ You have not selected a vehicle.")
+                st.warning("⚠️ You have not selected any vehicle.")
             else:
                 missing_who = selected_rows[
                     selected_rows["Who's Done"].isna() | 
                     (selected_rows["Who's Done"].astype(str).str.strip() == "")
                 ]
                 if not missing_who.empty:
-                    st.error("❌ Please fill in 'Who's Done' for all selected vehicles before marking them as Done.")
+                    st.error("❌ Please fill in 'Who's Done' for all selected vehicles.")
                     st.stop()
                 
                 count = 0
@@ -482,15 +502,16 @@ def page_pending():
                             original_id = int(df.loc[idx, '_id'])
                             who_done_val = str(edited_df.loc[idx, "Who's Done"]).strip()
                             c2.execute("""
-                                UPDATE vehicles SET status = 'Delivered', delivery_date = %s, handled_by = %s, who_done = %s 
+                                UPDATE vehicles SET status = 'Delivered', delivery_date = %s, 
+                                handled_by = %s, who_done = %s 
                                 WHERE id = %s
                             """, (delivery_time, st.session_state.username, who_done_val, original_id))
                             count += 1
-                    st.success(f"✅ {count} Vehicle(s) finished correctly.")
+                    st.success(f"✅ {count} Vehicle(s) marked as Done.")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"❌ Error updating vehicles: {e}")
-
+                    st.error(f"❌ Error: {e}")
+                    
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
