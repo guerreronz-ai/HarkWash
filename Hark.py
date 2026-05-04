@@ -437,7 +437,7 @@ def page_pending():
                 rows.append({
                     "Complete": False,
                     "Status": msg,
-                    "Urgent": "🚨" if v['is_urgent'] else "",
+                    "Urgent": "🚨 WFC" if v['is_urgent'] else "",
                     "TAG": v['tag_number'],
                     "VIN": v['vin_number'] or "-",
                     "Required Day": v['required_day'] or "-",
