@@ -157,7 +157,7 @@ def init_database():
 TIME_12H_OPTIONS = []
 for h in range(24):
     for m in [0, 15, 30, 45]:
-        # Generamos la hora en formato AM/PM (09:00 AM, 01:00 PM, etc.)
+      
         dt_obj = datetime(2026, 5, 2, h, m) 
         TIME_12H_OPTIONS.append(dt_obj.strftime("%I:%M %p"))
 
@@ -205,7 +205,6 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         if not reception_str:
             return "#6c757d", "⚠️ No Date", "-"
         
-        # Parsear fecha de recepción
         try:
             rec_date = datetime.strptime(reception_str, "%Y-%m-%d %I:%M %p")
         except ValueError:
@@ -215,16 +214,16 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
         hours_since = (now_dallas - rec_date).total_seconds() / 3600
 
         # ==================== SERVICIOS SIN FECHA REQUERIDA ====================
+        
         if service_clean in ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]:
             if service_clean == "Service Wash":
-                if hours_since < 0.25:      # 15 minutos
+                if hours_since < 0.16:      
                     return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
-                elif hours_since < 0.5:     # 30 minutos
+                elif hours_since < 0.33:     
                     return "#ffc107", "⚠️ Almost Due", f"{hours_since:.1f}h"
                 else:
                     return "#dc3545", "🚨 Out of Time", f"{hours_since:.1f}h"
             
-            # Full Detail for line y otros sin deadline específico
             if hours_since < 24:
                 return "#28a745", "✅ In Time", f"{hours_since:.1f}h"
             elif hours_since < 48:
