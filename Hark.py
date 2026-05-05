@@ -699,7 +699,7 @@ def page_users():
         st.warning("🔒 Access denied. Only Administrators can manage users.")
         return
 
-    # ====================  GESTIÓN DE USUARIOS ====================
+    # ==================== GESTIÓN DE USUARIOS ====================
     st.subheader("👤 User Management")
 
     # --- CREAR NUEVO USUARIO ---
@@ -713,14 +713,12 @@ def page_users():
                 new_fullname = st.text_input("Full Name", placeholder="John Doe")
                 new_level = st.selectbox("Access Level", [1, 2, 3], format_func=lambda x: {1: "👤 Agent", 2: "🛡️ Supervisor", 3: "⚙️ Admin"}[x])
             with col3:
-                # Obtener agencias actualizadas (incluyendo las recién creadas)
                 with get_db() as conn:
                     c = conn.cursor()
                     c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
                     branches = c.fetchall()
                     branch_opts = {b['name']: b['id'] for b in branches}
                 
-                # Si es Admin, no asignar agencia (Global)
                 if new_level == 3:
                     st.info("🌐 Admin users are Global/Admin")
                     selected_branch = None
@@ -770,7 +768,6 @@ def page_users():
 
     # --- EDITAR AGENCIA DE USUARIO ---
     with st.expander("✏️ Edit User - Change Agency", expanded=False):
-        # Recargar datos para el selector
         with get_db() as conn:
             c = conn.cursor()
             c.execute("""
@@ -796,7 +793,6 @@ def page_users():
                     branches = c.fetchall()
                     branch_opts = {b['name']: b['id'] for b in branches}
                     
-                    # Permitir volver a Global/Admin si el usuario es Admin
                     if selected_user['level'] == 3:
                         branch_options_edit = {"🌐 Global/Admin": None}
                         branch_options_edit.update(branch_opts)
@@ -838,7 +834,6 @@ def page_users():
             if user_list:
                 col1, col2 = st.columns(2)
                 
-                # Columna 1: Reset Password
                 with col1:
                     st.markdown("### 🔑 Reset Password")
                     selected_user_pass = st.selectbox("Select User", list(user_list.keys()), key="reset_pass_user")
@@ -856,7 +851,6 @@ def page_users():
                         else:
                             st.error(" Enter a password")
                 
-                # Columna 2: Delete User
                 with col2:
                     st.markdown("### 🗑️ Delete User")
                     delete_list = {f"{u['username']} - {u['full_name']}": u['id'] for u in users_data if u['id'] != st.session_state.user_id}
@@ -876,10 +870,12 @@ def page_users():
                         st.info("ℹ️ No other users to delete.")
         else:
             st.info(" No users found.")
+
+    st.divider()
+
     # ==================== GESTIÓN DE AGENCIAS ====================
     st.subheader("🏢 Agency Management")
     
-    # --- AGREGAR NUEVA AGENCIA ---
     with st.expander("➕ Add New Agency", expanded=True):
         with st.form("add_branch_form"):
             col1, col2 = st.columns([3, 1])
@@ -907,7 +903,6 @@ def page_users():
 
     st.divider()
 
-    # --- EDITAR AGENCIAS EXISTENTES ---
     with st.expander("✏️ Edit Existing Agencies", expanded=False):
         with get_db() as conn:
             c = conn.cursor()
@@ -917,10 +912,8 @@ def page_users():
         if branches:
             for b in branches:
                 col_a, col_b, col_c, col_d = st.columns([4, 2, 1, 1])
-                
                 with col_a:
                     new_name = st.text_input(f"Agency #{b['id']}", value=b['name'], key=f"branch_name_{b['id']}")
-                    
                 with col_b:
                     if st.button("💾 Update Name", key=f"upd_branch_{b['id']}"):
                         new_name_clean = new_name.strip()
@@ -936,16 +929,13 @@ def page_users():
                                 st.success(f"✅ Renamed: '{b['name']}' → '{new_name_clean}'")
                                 st.rerun()
                             except Exception as e:
-                                err = str(e).lower()
-                                if "duplicate key" in err or "unique" in err:
+                                if "duplicate" in str(e).lower() or "unique" in str(e).lower():
                                     st.error(f"❌ Name '{new_name_clean}' already exists.")
                                 else:
                                     st.error(f"❌ DB Error: {e}")
-                                
                 with col_c:
                     is_active = b['active'] == 1
                     new_active = st.checkbox("Active", value=is_active, key=f"branch_act_{b['id']}")
-                    
                 with col_d:
                     if st.button("💾 Status", key=f"stat_branch_{b['id']}"):
                         if new_active != is_active:
@@ -959,6 +949,33 @@ def page_users():
 
     st.divider()
 
+    # ==================== MANTENIMIENTO - AL FINAL ====================
+    st.subheader("🗑️ Database Maintenance")
+    with st.expander("🚨 Delete All Delivered Vehicles", expanded=True):
+        st.warning("⚠️ **Destructive Action** — This will permanently delete ALL vehicles marked as 'Delivered'.")
+        
+        col1, col2 = st.columns([1, 3])
+        with col1:
+            if st.button("📊 Count Delivered", type="secondary"):
+                with get_db() as conn:
+                    c = conn.cursor()
+                    c.execute("SELECT COUNT(*) as total FROM vehicles WHERE status = 'Delivered'")
+                    total = c.fetchone()['total']
+                st.success(f"📌 **{total}** delivered vehicles found.")
+        
+        with col2:
+            confirm_text = st.text_input("Type **DELETE DELIVERED** to confirm", key="delete_confirm")
+        
+        if st.button("🗑️ Permanently Delete All Delivered Vehicles", 
+                     type="primary", 
+                     disabled=confirm_text != "DELETE DELIVERED"):
+            with get_db() as conn:
+                c = conn.cursor()
+                c.execute("DELETE FROM vehicles WHERE status = 'Delivered'")
+                deleted = c.rowcount
+            st.success(f"✅ **{deleted}** Delivered vehicles were permanently deleted.")
+            st.rerun()
+                         
 def page_public_ingress_level0():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🚦 Vehicle Entrance</h1>", unsafe_allow_html=True)
     
