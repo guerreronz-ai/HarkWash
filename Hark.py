@@ -1072,6 +1072,7 @@ def page_statistics():
 
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
 
+    # ==================== FILTROS ====================
     with get_db() as conn:
         c = conn.cursor()
         c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
@@ -1089,7 +1090,13 @@ def page_statistics():
         branch_filter = branch_map[selected_branch_name]
     
     with col2:
-        period = st.selectbox("📅 Period", ["Last 7 Days", "Last 30 Days", "This Month", "All Time"], key="stat_period")
+        period = st.selectbox("📅 Period", [
+            "Today", 
+            "Last 7 Days", 
+            "Last 30 Days", 
+            "This Month", 
+            "All Time"
+        ], key="stat_period")
 
     if st.button("🔄 Update Charts", type="primary"):
         st.rerun()
@@ -1113,7 +1120,9 @@ def page_statistics():
                 params.append(branch_filter)
 
             # Filtro por período
-            if period == "Last 7 Days":
+            if period == "Today":
+                query += " AND DATE(reception_date::timestamp) = CURRENT_DATE"
+            elif period == "Last 7 Days":
                 query += " AND reception_date::timestamp >= NOW() - INTERVAL '7 days'"
             elif period == "Last 30 Days":
                 query += " AND reception_date::timestamp >= NOW() - INTERVAL '30 days'"
@@ -1132,7 +1141,7 @@ def page_statistics():
         df = pd.DataFrame(data)
         import plotly.express as px
 
-        # Métricas principales
+        # Métricas
         total = df['count'].sum()
         pending = df[df['status'] == 'Pending']['count'].sum() if not df.empty else 0
         delivered = df[df['status'] == 'Delivered']['count'].sum() if not df.empty else 0
@@ -1169,7 +1178,7 @@ def page_statistics():
 
     except Exception as e:
         st.error(f"❌ Error generating charts: {str(e)}")
-
+        
 # ==================== MAIN ====================
 def main():
     init_database()
