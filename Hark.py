@@ -547,7 +547,7 @@ def page_reports():
         st.info("This section is available only for Supervisors and Administrators.")
         st.stop()
 
-    st.markdown("<h2>📊 Reports & Statistics</h2>", unsafe_allow_html=True)
+    st.markdown("<h2>📊 Reports & stics</h2>", unsafe_allow_html=True)
     
     # ==================== NUEVO BUSCADOR POR TAG / VIN ====================
     col_search1, col_search2 = st.columns([3, 1])
@@ -1073,6 +1073,7 @@ def page_statistics():
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
     st.info(f"📍 Viewing: {'All Agencies' if st.session_state.level == 3 else st.session_state.branch_name}")
 
+    # Filtros
     col1, col2 = st.columns(2)
     with col1:
         period = st.selectbox("📅 Period", ["Last 7 Days", "Last 30 Days", "This Month", "All Time"], key="stat_period")
@@ -1119,33 +1120,54 @@ def page_statistics():
             return
 
         df = pd.DataFrame(data)
-
         import plotly.express as px
 
+        # Métricas principales
+        total = df['count'].sum()
+        pending = df[df['status'] == 'Pending']['count'].sum() if 'Pending' in df['status'].values else 0
+        delivered = df[df['status'] == 'Delivered']['count'].sum() if 'Delivered' in df['status'].values else 0
+
+        col_a, col_b, col_c, col_d = st.columns(4)
+        col_a.metric("📊 Total Vehicles", f"{total:,}")
+        col_b.metric("⏳ Pending", f"{pending:,}")
+        col_c.metric("✅ Delivered", f"{delivered:,}")
+        col_d.metric("🎯 Completion Rate", f"{(delivered/total*100):.1f}%" if total > 0 else "0%")
+
+        st.divider()
+
+        # Gráfico 1: Por Servicio
         st.subheader("📊 Vehicles by Service")
         service_total = df.groupby('service')['count'].sum().reset_index()
-        fig1 = px.bar(service_total, x='service', y='count', color='service', title="Total by Service")
+        fig1 = px.bar(service_total, x='service', y='count', color='service',
+                      title="Total Vehicles per Service", text='count')
+        fig1.update_traces(textposition='outside')
         st.plotly_chart(fig1, use_container_width=True)
 
+        # Gráfico 2: Pending vs Delivered
         st.subheader("✅ Pending vs Delivered")
         status_total = df.groupby('status')['count'].sum().reset_index()
-        fig2 = px.pie(status_total, names='status', values='count', 
-                      color_discrete_sequence=['#ff9800', '#4caf50'])
+        fig2 = px.pie(status_total, names='status', values='count',
+                      color_discrete_sequence=['#ff9800', '#4caf50'],
+                      title="Status Distribution")
         st.plotly_chart(fig2, use_container_width=True)
 
-        st.subheader("📅 Daily Trend")
+        # Gráfico 3: Tendencia Diaria
+        st.subheader("📅 Daily Activity Trend")
         daily = df.groupby(['date', 'status'])['count'].sum().reset_index()
-        fig3 = px.line(daily, x='date', y='count', color='status', markers=True, title="Daily Activity")
+        fig3 = px.line(daily, x='date', y='count', color='status', 
+                       markers=True, title="Daily Trend (Pending vs Delivered)")
         st.plotly_chart(fig3, use_container_width=True)
 
-        st.subheader("📋 Summary Table")
-        summary = df.groupby(['service', 'status'])['count'].sum().reset_index()
-        st.dataframe(summary, use_container_width=True, hide_index=True)
+        # Tabla resumen
+        st.subheader("📋 Detailed Summary")
+        summary = df.groupby(['service', 'status']).agg({'count': 'sum'}).reset_index()
+        st.dataframe(summary.sort_values('count', ascending=False), 
+                    use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"❌ Error generating charts: {str(e)}")
-        st.info("Make sure there is data in the database.")
-
+        st.info("Make sure you have data in the database and that plotly is installed.")
+        
 # ==================== MAIN ====================
 def main():
     init_database()
