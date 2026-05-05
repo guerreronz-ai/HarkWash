@@ -11,7 +11,6 @@ from contextlib import contextmanager
 from io import BytesIO
 import os
 
-# ==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
 # ==================== CONFIGURACIÓN VISUAL ====================
 st.set_page_config(
     page_title="HARK - Management System",
