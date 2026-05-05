@@ -1068,29 +1068,26 @@ def page_public_ingress_level0():
 def main():
     init_database()
     
-    # Modo invitado
     if st.session_state.get("guest_mode", False):
         page_public_ingress_level0()
         return   
-        
+
     if 'logged_in' not in st.session_state or not st.session_state.logged_in:
         login_page()
         return
 
-    # Reiniciar timestamp si no existe (para todos los niveles)
     if 'login_timestamp' not in st.session_state:
         st.session_state.login_timestamp = time.time()
 
-    # Solo Agents (Level 1) tienen límite de 5 horas
     if st.session_state.level == 1:
         five_hours_seconds = 5 * 60 * 60
         if time.time() - st.session_state.login_timestamp > five_hours_seconds:
             st.error("⏰ Session expired (5 hours limit). Please login again.")
-            for key in list(st.session_state.keys()): 
-                del st.session_state[key]
+            for key in list(st.session_state.keys()): del st.session_state[key]
             st.rerun()
             return
 
+    # Sidebar
     st.sidebar.markdown(f"""
       <div style='text-align:center; padding: 20px 0;'>
           <h1 style='color:#00d4ff; margin:0; font-size:2.4em;'>🦈 HARK</h1>
@@ -1102,29 +1099,104 @@ def main():
     """, unsafe_allow_html=True)
 
     if st.sidebar.button("🚪 Sign Out", use_container_width=True):
-        for k in list(st.session_state.keys()): 
-            del st.session_state[k]
+        for k in list(st.session_state.keys()): del st.session_state[k]
+        st.rerun()
+#======================== STATISTICS  =========================================
+def page_statistics():
+    if st.session_state.level < 2:
+        st.error("🚫 Access denied. Only Supervisors and Administrators.")
+        return
+
+    st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
+    st.info(f"📍 Agency: {st.session_state.branch_name if st.session_state.level < 3 else 'All Agencies'} | 👤 {st.session_state.full_name}")
+
+    # Filtros
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        period = st.selectbox("Period", ["Last 7 Days", "Last 30 Days", "This Month", "All Time"], key="stat_period")
+    with col2:
+        if st.session_state.level == 3:
+            branch_filter = st.selectbox("Agency", ["All Agencies", st.session_state.branch_name], key="stat_branch")
+        else:
+            branch_filter = st.session_state.branch_name
+
+    if st.button("🔄 Update Charts", type="primary"):
         st.rerun()
 
+    with get_db() as conn:
+        c = conn.cursor()
+        query = """
+            SELECT service, status, reception_date::date as date, COUNT(*) as count
+            FROM vehicles 
+            WHERE 1=1
+        """
+        params = []
+        if branch_filter != "All Agencies" and st.session_state.level == 3:
+            c.execute("SELECT id FROM branches WHERE name = %s", (branch_filter,))
+            bid = c.fetchone()
+            if bid:
+                query += " AND branch_id = %s"
+                params.append(bid['id'])
+
+        if period == "Last 7 Days":
+            query += " AND reception_date >= NOW() - INTERVAL '7 days'"
+        elif period == "Last 30 Days":
+            query += " AND reception_date >= NOW() - INTERVAL '30 days'"
+        elif period == "This Month":
+            query += " AND DATE_TRUNC('month', reception_date) = DATE_TRUNC('month', CURRENT_DATE)"
+
+        query += " GROUP BY service, status, date ORDER BY date"
+        c.execute(query, params)
+        data = c.fetchall()
+
+    if not data:
+        st.warning("No data available for the selected period.")
+        return
+
+    df = pd.DataFrame(data)
+
+    # Gráficos
+    import plotly.express as px
+
+    st.subheader("📊 Services Distribution")
+    fig1 = px.bar(df.groupby('service')['count'].sum().reset_index(), 
+                  x='service', y='count', color='service',
+                  title="Total Vehicles by Service")
+    st.plotly_chart(fig1, use_container_width=True)
+
+    st.subheader("⏳ Pending vs Delivered")
+    status_count = df.groupby('status')['count'].sum().reset_index()
+    fig2 = px.pie(status_count, names='status', values='count', 
+                  title="Pending vs Delivered", color_discrete_sequence=['#ff9800', '#4caf50'])
+    st.plotly_chart(fig2, use_container_width=True)
+
+    st.subheader("📅 Daily Trend")
+    daily = df.groupby(['date', 'status'])['count'].sum().reset_index()
+    fig3 = px.line(daily, x='date', y='count', color='status', 
+                   title="Daily Activity Trend", markers=True)
+    st.plotly_chart(fig3, use_container_width=True)
+
+    st.subheader("📋 Detailed Summary")
+    summary = df.groupby(['service', 'status']).agg({'count': 'sum'}).reset_index()
+    st.dataframe(summary, use_container_width=True, hide_index=True)
+    
+    # ==================== MAIN ====================
     menu_options = ["🚦 Ingress", "🏎️ Pending"]
-    if st.session_state.level >= 2: menu_options.append("📊 Reports")
-    if st.session_state.level == 3: menu_options.append("👤 Users")
+    if st.session_state.level >= 2: 
+        menu_options.append("📊 Reports")
+        menu_options.append("📈 Statistics")   # ← Nueva página
+    if st.session_state.level == 3: 
+        menu_options.append("👤 Users")
     
     menu = st.sidebar.radio("Menu", menu_options)
     
-    try:
-        if menu == "🚦 Ingress": 
-            page_ingress()
-        elif menu == "🏎️ Pending": 
-            page_pending()
-        elif menu == "📊 Reports": 
-            page_reports()
-        elif menu == "👤 Users": 
-            page_users()
-    except Exception as e:
-        st.error(f"⚠️ Error inesperado: {str(e)}")
-        st.info("Intentando recuperar sesión...")
-        st.rerun()
-
-if __name__ == "__main__":
-    main()
+    if menu == "🚦 Ingress": 
+        page_ingress()
+    elif menu == "🏎️ Pending": 
+        page_pending()
+    elif menu == "📊 Reports": 
+        page_reports()
+    elif menu == "📈 Statistics": 
+        page_statistics()         
+    elif menu == "👤 Users": 
+        page_users()
