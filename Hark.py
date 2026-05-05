@@ -156,13 +156,7 @@ def init_database():
             users_data = [
                 ('SuperSU', hashlib.sha256('Krieger1'.encode()).hexdigest(), 3, 'Administrator', None),
                 ('Admin', hashlib.sha256('Admin123*'.encode()).hexdigest(), 3, 'Administrator', None),
-                ('User1', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent bmw', bmw_id),
-                ('User2', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent Central', acura_id),
-                ('User3', hashlib.sha256('User123'.encode()).hexdigest(), 1, 'Agent South', subaru_id),
-                ('Super1', hashlib.sha256('Super123'.encode()).hexdigest(), 2, 'Supervisor bmw', bmw_id),
-                ('Super2', hashlib.sha256('Super123'.encode()).hexdigest(), 2, 'Supervisor Central', acura_id),
-                ('Super3', hashlib.sha256('Super123'.encode()).hexdigest(), 2, 'Supervisor South', subaru_id),
-            ]
+               ]
             c.executemany(
                 "INSERT INTO users (username, password, level, full_name, branch_id) VALUES (%s, %s, %s, %s, %s)", 
                 users_data
@@ -761,7 +755,7 @@ def page_users():
 
         if users_data:
             df = pd.DataFrame(users_data, columns=['id', 'username', 'level', 'full_name', 'branch_name', 'branch_id'])
-            df['level'] = df['level'].map({1: ' Agent', 2: '🛡️ Supervisor', 3: '⚙️ Admin'})
+            df['level'] = df['level'].map({1: '👤 Agent', 2: '🛡️ Supervisor', 3: '⚙️ Admin'})
             st.dataframe(df[['id', 'username', 'level', 'full_name', 'branch_name']], hide_index=True, use_container_width=True)
         else:
             st.info("📭 No users found.")
@@ -949,7 +943,7 @@ def page_users():
 
     st.divider()
 
-    # ==================== MANTENIMIENTO - AL FINAL ====================
+    # ==================== Database Maintenance ====================
     st.subheader("🗑️ Database Maintenance")
     with st.expander("🚨 Delete All Delivered Vehicles", expanded=True):
         st.warning("⚠️ **Destructive Action** — This will permanently delete ALL vehicles marked as 'Delivered'.")
@@ -966,7 +960,7 @@ def page_users():
         with col2:
             confirm_text = st.text_input("Type **DELETE DELIVERED** to confirm", key="delete_confirm")
         
-        if st.button("🗑️ Permanently Delete All Delivered Vehicles", 
+        if st.button("📉 Permanently Delete All Delivered Vehicles", 
                      type="primary", 
                      disabled=confirm_text != "DELETE DELIVERED"):
             with get_db() as conn:
