@@ -1085,9 +1085,13 @@ def page_statistics():
     try:
         with get_db() as conn:
             c = conn.cursor()
+            
             query = """
-                SELECT service, status, DATE(reception_date) as date, COUNT(*) as count
-                FROM vehicles WHERE 1=1
+                SELECT service, status, 
+                       DATE(reception_date::timestamp) as date, 
+                       COUNT(*) as count
+                FROM vehicles 
+                WHERE 1=1
             """
             params = []
 
@@ -1099,13 +1103,14 @@ def page_statistics():
                     params.append(bid['id'])
 
             if period == "Last 7 Days":
-                query += " AND reception_date >= NOW() - INTERVAL '7 days'"
+                query += " AND reception_date::timestamp >= NOW() - INTERVAL '7 days'"
             elif period == "Last 30 Days":
-                query += " AND reception_date >= NOW() - INTERVAL '30 days'"
+                query += " AND reception_date::timestamp >= NOW() - INTERVAL '30 days'"
             elif period == "This Month":
-                query += " AND DATE_TRUNC('month', reception_date) = DATE_TRUNC('month', CURRENT_DATE)"
+                query += " AND DATE_TRUNC('month', reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE)"
 
             query += " GROUP BY service, status, date ORDER BY date"
+            
             c.execute(query, params)
             data = c.fetchall()
 
@@ -1114,26 +1119,33 @@ def page_statistics():
             return
 
         df = pd.DataFrame(data)
+
         import plotly.express as px
 
         st.subheader("📊 Vehicles by Service")
-        fig1 = px.bar(df.groupby('service')['count'].sum().reset_index(), 
-                      x='service', y='count', color='service')
+        service_total = df.groupby('service')['count'].sum().reset_index()
+        fig1 = px.bar(service_total, x='service', y='count', color='service', title="Total by Service")
         st.plotly_chart(fig1, use_container_width=True)
 
         st.subheader("✅ Pending vs Delivered")
-        fig2 = px.pie(df.groupby('status')['count'].sum().reset_index(), 
-                      names='status', values='count', color_discrete_sequence=['#ff9800', '#4caf50'])
+        status_total = df.groupby('status')['count'].sum().reset_index()
+        fig2 = px.pie(status_total, names='status', values='count', 
+                      color_discrete_sequence=['#ff9800', '#4caf50'])
         st.plotly_chart(fig2, use_container_width=True)
 
         st.subheader("📅 Daily Trend")
         daily = df.groupby(['date', 'status'])['count'].sum().reset_index()
-        fig3 = px.line(daily, x='date', y='count', color='status', markers=True)
+        fig3 = px.line(daily, x='date', y='count', color='status', markers=True, title="Daily Activity")
         st.plotly_chart(fig3, use_container_width=True)
+
+        st.subheader("📋 Summary Table")
+        summary = df.groupby(['service', 'status'])['count'].sum().reset_index()
+        st.dataframe(summary, use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"❌ Error generating charts: {str(e)}")
-        
+        st.info("Make sure there is data in the database.")
+
 # ==================== MAIN ====================
 def main():
     init_database()
