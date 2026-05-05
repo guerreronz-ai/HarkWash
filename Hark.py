@@ -12,35 +12,23 @@ from io import BytesIO
 import os
 
 # ==================== CONFIGURACIÓN VISUAL PROFESIONAL ====================
+# ==================== CONFIGURACIÓN VISUAL ====================
 st.set_page_config(
     page_title="HARK - Management System",
     layout="wide",
-    page_icon="hark_logo.png",   # Cambiado a .png
-    initial_sidebar_state="expanded",
-    menu_items={
-        'Get Help': None,
-        'Report a bug': None,
-        'About': "HARK Management System"
-    }
+    page_icon="hark_logo.png",  
+    initial_sidebar_state="expanded"
 )
 
+# Soporte mejorado para iOS + PC + Android
 st.markdown("""
-    <link rel="apple-touch-icon" sizes="180x180" href="hark_logo.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="HARK">
-    <meta name="theme-color" content="#00d4ff">
-    <style>
-        @media (prefers-color-scheme: dark) {
-            .stApp { background-color: #0f172a !important; }
-        }
-    </style>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#00a8e8">
+    <link rel="apple-touch-icon" sizes="512x512" href="hark_logo.png">
 """, unsafe_allow_html=True)
-# ==================== LOGO HARK ====================
-st.logo(
-    "hark_logo.png",
-    size="large"
-)
+
+st.logo("hark_logo.png", size="large")
 
 # ==================== CSS Profesional ====================
 st.markdown("""
