@@ -1071,14 +1071,25 @@ def page_statistics():
         return
 
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
-    st.info(f"📍 Viewing: {'All Agencies' if st.session_state.level == 3 else st.session_state.branch_name}")
 
-    # Filtros
+    with get_db() as conn:
+        c = conn.cursor()
+        c.execute("SELECT id, name FROM branches WHERE active=1 ORDER BY name")
+        branches = c.fetchall()
+    
+    branch_options = ["🌐 All Agencies"]
+    branch_map = {"🌐 All Agencies": None}
+    for b in branches:
+        branch_options.append(b['name'])
+        branch_map[b['name']] = b['id']
+
     col1, col2 = st.columns(2)
     with col1:
-        period = st.selectbox("📅 Period", ["Last 7 Days", "Last 30 Days", "This Month", "All Time"], key="stat_period")
+        selected_branch_name = st.selectbox("🏢 Agency", branch_options, key="stat_branch_select")
+        branch_filter = branch_map[selected_branch_name]
+    
     with col2:
-        branch_filter = "All Agencies" if st.session_state.level == 3 else st.session_state.branch_name
+        period = st.selectbox("📅 Period", ["Last 7 Days", "Last 30 Days", "This Month", "All Time"], key="stat_period")
 
     if st.button("🔄 Update Charts", type="primary"):
         st.rerun()
@@ -1096,13 +1107,12 @@ def page_statistics():
             """
             params = []
 
-            if branch_filter != "All Agencies":
-                c.execute("SELECT id FROM branches WHERE name = %s", (branch_filter,))
-                bid = c.fetchone()
-                if bid:
-                    query += " AND branch_id = %s"
-                    params.append(bid['id'])
+            # Filtro por agencia
+            if branch_filter is not None:
+                query += " AND branch_id = %s"
+                params.append(branch_filter)
 
+            # Filtro por período
             if period == "Last 7 Days":
                 query += " AND reception_date::timestamp >= NOW() - INTERVAL '7 days'"
             elif period == "Last 30 Days":
@@ -1124,8 +1134,8 @@ def page_statistics():
 
         # Métricas principales
         total = df['count'].sum()
-        pending = df[df['status'] == 'Pending']['count'].sum() if 'Pending' in df['status'].values else 0
-        delivered = df[df['status'] == 'Delivered']['count'].sum() if 'Delivered' in df['status'].values else 0
+        pending = df[df['status'] == 'Pending']['count'].sum() if not df.empty else 0
+        delivered = df[df['status'] == 'Delivered']['count'].sum() if not df.empty else 0
 
         col_a, col_b, col_c, col_d = st.columns(4)
         col_a.metric("📊 Total Vehicles", f"{total:,}")
@@ -1135,39 +1145,31 @@ def page_statistics():
 
         st.divider()
 
-        # Gráfico 1: Por Servicio
+        # Gráficos
         st.subheader("📊 Vehicles by Service")
         service_total = df.groupby('service')['count'].sum().reset_index()
-        fig1 = px.bar(service_total, x='service', y='count', color='service',
-                      title="Total Vehicles per Service", text='count')
+        fig1 = px.bar(service_total, x='service', y='count', color='service', text='count')
         fig1.update_traces(textposition='outside')
         st.plotly_chart(fig1, use_container_width=True)
 
-        # Gráfico 2: Pending vs Delivered
         st.subheader("✅ Pending vs Delivered")
         status_total = df.groupby('status')['count'].sum().reset_index()
         fig2 = px.pie(status_total, names='status', values='count',
-                      color_discrete_sequence=['#ff9800', '#4caf50'],
-                      title="Status Distribution")
+                      color_discrete_sequence=['#ff9800', '#4caf50'])
         st.plotly_chart(fig2, use_container_width=True)
 
-        # Gráfico 3: Tendencia Diaria
         st.subheader("📅 Daily Activity Trend")
         daily = df.groupby(['date', 'status'])['count'].sum().reset_index()
-        fig3 = px.line(daily, x='date', y='count', color='status', 
-                       markers=True, title="Daily Trend (Pending vs Delivered)")
+        fig3 = px.line(daily, x='date', y='count', color='status', markers=True)
         st.plotly_chart(fig3, use_container_width=True)
 
-        # Tabla resumen
         st.subheader("📋 Detailed Summary")
         summary = df.groupby(['service', 'status']).agg({'count': 'sum'}).reset_index()
-        st.dataframe(summary.sort_values('count', ascending=False), 
-                    use_container_width=True, hide_index=True)
+        st.dataframe(summary.sort_values('count', ascending=False), use_container_width=True, hide_index=True)
 
     except Exception as e:
         st.error(f"❌ Error generating charts: {str(e)}")
-        st.info("Make sure you have data in the database and that plotly is installed.")
-        
+
 # ==================== MAIN ====================
 def main():
     init_database()
