@@ -1067,44 +1067,64 @@ def page_public_ingress_level0():
 # ==================== MAIN ====================
 def main():
     init_database()
+    
+    # Modo invitado
     if st.session_state.get("guest_mode", False):
         page_public_ingress_level0()
         return   
+        
+    if 'logged_in' not in st.session_state or not st.session_state.logged_in:
+        login_page()
+        return
 
-    if 'logged_in' in st.session_state and st.session_state.level == 1:
-        if 'login_timestamp' not in st.session_state: st.session_state.login_timestamp = time.time()
+    # Reiniciar timestamp si no existe (para todos los niveles)
+    if 'login_timestamp' not in st.session_state:
+        st.session_state.login_timestamp = time.time()
+
+    # Solo Agents (Level 1) tienen límite de 5 horas
+    if st.session_state.level == 1:
         five_hours_seconds = 5 * 60 * 60
         if time.time() - st.session_state.login_timestamp > five_hours_seconds:
             st.error("⏰ Session expired (5 hours limit). Please login again.")
-            for key in list(st.session_state.keys()): del st.session_state[key]
+            for key in list(st.session_state.keys()): 
+                del st.session_state[key]
             st.rerun()
+            return
 
-    if 'logged_in' not in st.session_state:
-        login_page()
-    else:
-        st.sidebar.markdown(f"""
-          <div style='text-align:center; padding: 20px 0;'>
-              <h1 style='color:#00d4ff; margin:0; font-size:2.4em;'>🦈 HARK</h1>
-              <p style='color:#94a3b8; margin:10px 0 0 0;'>
-                {st.session_state.full_name}<br>
-                <small style='color:#64748b;'>{st.session_state.branch_name}</small>
-              </p>
-          </div>
-        """, unsafe_allow_html=True)
+    st.sidebar.markdown(f"""
+      <div style='text-align:center; padding: 20px 0;'>
+          <h1 style='color:#00d4ff; margin:0; font-size:2.4em;'>🦈 HARK</h1>
+          <p style='color:#94a3b8; margin:10px 0 0 0;'>
+            {st.session_state.full_name}<br>
+            <small style='color:#64748b;'>{st.session_state.branch_name}</small>
+          </p>
+      </div>
+    """, unsafe_allow_html=True)
 
-        if st.sidebar.button("🚪 Sign Out", use_container_width=True):
-            for k in list(st.session_state.keys()): del st.session_state[k]
-            st.rerun()
+    if st.sidebar.button("🚪 Sign Out", use_container_width=True):
+        for k in list(st.session_state.keys()): 
+            del st.session_state[k]
+        st.rerun()
 
-        menu_options = ["🚦 Ingress", "🏎️ Pending"]
-        if st.session_state.level >= 2: menu_options.append("📊 Reports")
-        if st.session_state.level == 3: menu_options.append("👤 Users")
-        
-        menu = st.sidebar.radio("Menu", menu_options)
-        if menu == "🚦 Ingress": page_ingress()
-        elif menu == "🏎️ Pending": page_pending()
-        elif menu == "📊 Reports": page_reports()
-        elif menu == "👤 Users": page_users()
+    menu_options = ["🚦 Ingress", "🏎️ Pending"]
+    if st.session_state.level >= 2: menu_options.append("📊 Reports")
+    if st.session_state.level == 3: menu_options.append("👤 Users")
+    
+    menu = st.sidebar.radio("Menu", menu_options)
+    
+    try:
+        if menu == "🚦 Ingress": 
+            page_ingress()
+        elif menu == "🏎️ Pending": 
+            page_pending()
+        elif menu == "📊 Reports": 
+            page_reports()
+        elif menu == "👤 Users": 
+            page_users()
+    except Exception as e:
+        st.error(f"⚠️ Error inesperado: {str(e)}")
+        st.info("Intentando recuperar sesión...")
+        st.rerun()
 
 if __name__ == "__main__":
     main()
