@@ -376,6 +376,17 @@ def page_ingress():
             
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
+    
+    if "last_pending_refresh" not in st.session_state:
+        st.session_state.last_pending_refresh = time.time()
+    
+    seconds_ago = int(time.time() - st.session_state.last_pending_refresh)
+    st.caption(f"🔄 Auto-refresh activado • Última actualización hace **{seconds_ago}** segundos")
+    
+    if st.button("🔄 Actualizar Ahora", type="secondary"):
+        st.session_state.last_pending_refresh = time.time()
+        st.rerun()
+
     if st.session_state.level < 3:
         st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
     else:
@@ -420,9 +431,12 @@ def page_pending():
 
     if not all_v:
         st.warning(f"No pending vehicles were found that matched '{search_term}'" if search_term else "There are no pending vehicles.")
+        # Auto refresh igual
+        if time.time() - st.session_state.last_pending_refresh > 60:
+            st.session_state.last_pending_refresh = time.time()
+            st.rerun()
         return
 
-    # Servicios sin fecha/hora requerida
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
     by_service = {}
@@ -453,7 +467,6 @@ def page_pending():
 
             df = pd.DataFrame(rows)
 
-            # ==================== ORDEN DE COLUMNAS ====================
             if svc in NO_REQUIRED_SERVICES:
                 column_order = [
                     "Complete", "Status", "Urgent", "TAG", "VIN", 
@@ -524,6 +537,10 @@ def page_pending():
                 except Exception as e:
                     st.error(f"❌ Error: {e}")
 
+    if time.time() - st.session_state.last_pending_refresh > 60:
+        st.session_state.last_pending_refresh = time.time()
+        st.rerun()
+        
 def page_reports():
     if 'logged_in' not in st.session_state or 'level' not in st.session_state:
         st.error("🚫 Session expired. Please login again.")
