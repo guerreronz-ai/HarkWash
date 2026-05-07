@@ -1139,10 +1139,10 @@ def page_statistics():
                     AVG(
                         CASE 
                             WHEN status = 'Delivered' 
-                            THEN EXTRACT(EPOCH FROM (delivery_date::timestamp - reception_date::timestamp)) / 3600 
+                            THEN EXTRACT(EPOCH FROM (delivery_date::timestamp - reception_date::timestamp)) / 60 
                             ELSE NULL 
                         END
-                    ) as avg_hours
+                    ) as avg_minutes
                 FROM vehicles 
                 WHERE 1=1
             """
@@ -1170,7 +1170,7 @@ def page_statistics():
             st.info("📭 No data found for the selected period.")
             return
 
-        df = pd.DataFrame(data, columns=['service', 'status', 'count', 'avg_hours'])
+        df = pd.DataFrame(data, columns=['service', 'status', 'count', 'avg_minutes'])
 
         # ==================== MÉTRICAS ====================
         total = df['count'].sum()
@@ -1185,31 +1185,36 @@ def page_statistics():
 
         st.divider()
 
+        # ==================== FUNCIÓN PARA FORMATO HORAS:MINUTOS ====================
+        def minutes_to_hm(minutes):
+            if pd.isna(minutes):
+                return "-"
+            total_min = round(float(minutes))
+            hours = total_min // 60
+            mins = total_min % 60
+            return f"{hours}:{mins:02d}"
+
         # ==================== TABLA CON TIEMPO PROMEDIO ====================
         st.subheader("📋 Detailed Summary")
         
         df_display = df.copy()
-        
-        # Manejo seguro de valores None / NaN
-        df_display['avg_hours'] = pd.to_numeric(df_display['avg_hours'], errors='coerce')
-        df_display['avg_hours'] = df_display['avg_hours'].round(2)
+        df_display['avg_minutes'] = pd.to_numeric(df_display['avg_minutes'], errors='coerce')
 
         df_display = df_display.rename(columns={
             'service': 'Service',
             'status': 'Status',
             'count': 'Count',
-            'avg_hours': 'Avg Time (hours)'
+            'avg_minutes': 'Avg Time'
         })
 
-        # Formatear columna de tiempo
-        df_display['Avg Time (hours)'] = df_display.apply(
-            lambda x: f"{x['Avg Time (hours)']}" 
-            if x['Status'] == 'Delivered' and pd.notna(x['Avg Time (hours)']) 
-            else "-", axis=1
+        # Aplicar formato H:MM
+        df_display['Avg Time'] = df_display.apply(
+            lambda x: minutes_to_hm(x['Avg Time']) 
+            if x['Status'] == 'Delivered' else "-", axis=1
         )
 
         st.dataframe(
-            df_display[['Service', 'Status', 'Count', 'Avg Time (hours)']], 
+            df_display[['Service', 'Status', 'Count', 'Avg Time']], 
             use_container_width=True, 
             hide_index=True
         )
@@ -1230,7 +1235,7 @@ def page_statistics():
         st.plotly_chart(fig2, use_container_width=True)
 
     except Exception as e:
-        st.error(f"❌ Error generating statistics: {str(e)}")       
+        st.error(f"❌ Error generating statistics: {str(e)}")
         
 # ==================== MAIN ====================
 def main():
