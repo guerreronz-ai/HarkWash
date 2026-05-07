@@ -260,6 +260,23 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
 
     except Exception:
         return "#6c757d", "⚠️ Error", "-"
+
+def is_future_datetime(req_day, req_time):
+    """Retorna True si la fecha/hora requerida es en el futuro"""
+    if not req_day or not req_time:
+        return True  
+    
+    dallas_tz = ZoneInfo("America/Chicago")
+    now = datetime.now(dallas_tz)
+    
+    try:
+        req_str = f"{req_day} {req_time}"
+        req_dt = datetime.strptime(req_str, "%Y-%m-%d %I:%M %p")
+        req_dt = req_dt.replace(tzinfo=dallas_tz)
+        return req_dt > now
+    except:
+        return False
+        
 # ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
@@ -337,6 +354,10 @@ def page_ingress():
         urgent = st.checkbox("🚨 Waiting Customer")
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+            if service not in NO_REQUIRED_SERVICES:
+                if not is_future_datetime(req_day, req_time):
+                    st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **posterior** a la hora actual.")
+                    st.stop()
             if req_type == "both" and (not vin.strip() or not tag.strip()):
                 st.error("❌ This service requires both VIN and TAG"); st.stop()
             elif req_type == "vin" and not vin.strip():
@@ -1029,6 +1050,10 @@ def page_public_ingress_level0():
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+            if service not in NO_REQUIRED_SERVICES:
+                if not is_future_datetime(req_day, req_time):
+                    st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **posterior** a la hora actual.")
+                    st.stop()
             if req_type == "both" and (not vin.strip() or not tag.strip()): 
                 st.error("❌ This service requires VIN and TAG"); st.stop()
             elif req_type == "vin" and not vin.strip(): 
