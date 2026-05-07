@@ -1068,11 +1068,11 @@ def page_public_ingress_level0():
         
         urgent = st.checkbox("🚨 Waiting Customer")
 
-        if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+                if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
             
             # ====================== VALIDACIÓN FECHA/HORA ======================
-           if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):   # ← Solo 2 argumentos
+            if service not in NO_REQUIRED_SERVICES:
+                if not is_future_datetime(req_day, req_time):
                     now = datetime.now(ZoneInfo("America/Chicago"))
                     if now.hour >= 21:
                         st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
