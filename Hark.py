@@ -261,10 +261,10 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
     except Exception:
         return "#6c757d", "⚠️ Error", "-"
 
-def is_future_datetime(req_day, req_time, service):
-    
+def is_future_datetime(req_day, req_time):
+    """Valida fecha/hora futura + cutoff 9:00 PM"""
     if not req_day or not req_time:
-        return True  
+        return True
     
     dallas_tz = ZoneInfo("America/Chicago")
     now = datetime.now(dallas_tz)
@@ -274,20 +274,20 @@ def is_future_datetime(req_day, req_time, service):
         req_dt = datetime.strptime(req_str, "%Y-%m-%d %I:%M %p")
         req_dt = req_dt.replace(tzinfo=dallas_tz)
 
-        if req_dt.date() == now.date(): 
+        # Si es para HOY
+        if req_dt.date() == now.date():
             cutoff = now.replace(hour=21, minute=0, second=0, microsecond=0)
-            if now >= cutoff:  
-                return False
-            else:
-                return req_dt > now  
-        
-       
+            if now >= cutoff:
+                return False  # Después de 9 PM no se permite hoy
+            return req_dt > now   # Solo horas futuras
+
+        # Días futuros → siempre permitido
         return req_dt > now
 
     except:
         return False
         
-        # ==================== PÁGINAS ====================
+# ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
     with st.form("login_form"):
@@ -367,13 +367,14 @@ def page_ingress():
             
             # ====================== VALIDACIÓN FECHA/HORA ======================
             if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):
+                if not is_future_datetime(req_day, req_time):   # ← Solo 2 argumentos
                     now = datetime.now(ZoneInfo("America/Chicago"))
                     if now.hour >= 21:
-                        st.error("❌ **Después de las 9:00 PM** no se pueden registrar vehículos para hoy.\nSolo se permite programar para **mañana** o fecha posterior.")
+                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
                     else:
-                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **futura**.")
+                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
                     st.stop()
+            
             
             # ====================== VALIDACIONES DE CAMPOS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()):
@@ -1070,13 +1071,13 @@ def page_public_ingress_level0():
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
             
             # ====================== VALIDACIÓN FECHA/HORA ======================
-            if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):
+           if service not in NO_REQUIRED_SERVICES:
+                if not is_future_datetime(req_day, req_time):   # ← Solo 2 argumentos
                     now = datetime.now(ZoneInfo("America/Chicago"))
                     if now.hour >= 21:
-                        st.error("❌ **Después de las 9:00 PM** no se pueden registrar vehículos para hoy.\nSolo se permite programar para **mañana** o fecha posterior.")
+                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
                     else:
-                        st.error("❌ No se puede programar en el pasado.")
+                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
                     st.stop()
             
             # ====================== VALIDACIONES DE CAMPOS ======================
