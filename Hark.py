@@ -160,8 +160,9 @@ for h in range(24):
         TIME_12H_OPTIONS.append(dt_obj.strftime("%I:%M %p"))
 
 SERVICES_LIST = [
-    "Full Detail the customer", "Zaktek", "Sold Detail", "Sold use car", "Sold new car",
     "Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line",
+    "Full Detail the customer", "Zaktek", "Sold Detail", "Sold use car", "Sold new car",
+    
 ]
 SERVICE_FIELD_REQUIREMENTS = {
     "Service Wash": "tag",
