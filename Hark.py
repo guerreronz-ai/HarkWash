@@ -1121,11 +1121,7 @@ def page_statistics():
     
     with col2:
         period = st.selectbox("📅 Period", [
-            "Today", 
-            "Last 7 Days", 
-            "Last 30 Days", 
-            "This Month", 
-            "All Time"
+            "Today", "Last 7 Days", "Last 30 Days", "This Month", "All Time"
         ], key="stat_period")
 
     if st.button("🔄 Update Charts", type="primary"):
@@ -1152,12 +1148,10 @@ def page_statistics():
             """
             params = []
 
-            # Filtro por agencia
             if branch_filter is not None:
                 query += " AND branch_id = %s"
                 params.append(branch_filter)
 
-            # Filtro por período
             if period == "Today":
                 query += " AND DATE(reception_date::timestamp) = CURRENT_DATE"
             elif period == "Last 7 Days":
@@ -1167,10 +1161,7 @@ def page_statistics():
             elif period == "This Month":
                 query += " AND DATE_TRUNC('month', reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE)"
 
-            query += """
-                GROUP BY service, status 
-                ORDER BY count DESC
-            """
+            query += " GROUP BY service, status ORDER BY count DESC"
             
             c.execute(query, params)
             data = c.fetchall()
@@ -1197,19 +1188,23 @@ def page_statistics():
         # ==================== TABLA CON TIEMPO PROMEDIO ====================
         st.subheader("📋 Detailed Summary")
         
-        # Formatear columna de tiempo promedio
         df_display = df.copy()
+        
+        # Manejo seguro de valores None / NaN
+        df_display['avg_hours'] = pd.to_numeric(df_display['avg_hours'], errors='coerce')
         df_display['avg_hours'] = df_display['avg_hours'].round(2)
+
         df_display = df_display.rename(columns={
             'service': 'Service',
             'status': 'Status',
             'count': 'Count',
             'avg_hours': 'Avg Time (hours)'
         })
-        
-        # Mostrar solo Delivered con tiempo, o "-" para Pending
+
+        # Formatear columna de tiempo
         df_display['Avg Time (hours)'] = df_display.apply(
-            lambda x: f"{x['Avg Time (hours)']}" if x['Status'] == 'Delivered' and pd.notna(x['Avg Time (hours)']) 
+            lambda x: f"{x['Avg Time (hours)']}" 
+            if x['Status'] == 'Delivered' and pd.notna(x['Avg Time (hours)']) 
             else "-", axis=1
         )
 
@@ -1234,11 +1229,8 @@ def page_statistics():
                       color_discrete_sequence=['#ff9800', '#4caf50'])
         st.plotly_chart(fig2, use_container_width=True)
 
-        st.subheader("📅 Daily Activity Trend")
-        # (Mantengo el gráfico de tendencia si quieres, pero requiere más cambios si lo quieres con tiempo)
-
     except Exception as e:
-        st.error(f"❌ Error generating statistics: {str(e)}")
+        st.error(f"❌ Error generating statistics: {str(e)}")       
         
 # ==================== MAIN ====================
 def main():
