@@ -333,7 +333,7 @@ def page_ingress():
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
     # Service fuera del form
-    service = st.selectbox("Service", SERVICES_LIST, key="service_sel")
+    service = st.selectbox("⚠️ Service (Select the required service)⚠️", SERVICES_LIST, key="service_sel")
 
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
@@ -1037,7 +1037,7 @@ def page_public_ingress_level0():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
+    service = st.selectbox("⚠️ Service (Select the required service)⚠️", SERVICES_LIST, key="guest_service")
 
     with st.form("guest_ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
