@@ -261,8 +261,8 @@ def get_status_info(service, reception_str, req_day_str, req_time_str):
     except Exception:
         return "#6c757d", "⚠️ Error", "-"
 
-def is_future_datetime(req_day, req_time):
-    """Retorna True si la fecha/hora requerida es en el futuro"""
+def is_future_datetime(req_day, req_time, service):
+    
     if not req_day or not req_time:
         return True  
     
@@ -273,11 +273,21 @@ def is_future_datetime(req_day, req_time):
         req_str = f"{req_day} {req_time}"
         req_dt = datetime.strptime(req_str, "%Y-%m-%d %I:%M %p")
         req_dt = req_dt.replace(tzinfo=dallas_tz)
+
+        if req_dt.date() == now.date(): 
+            cutoff = now.replace(hour=21, minute=0, second=0, microsecond=0)
+            if now >= cutoff:  
+                return False
+            else:
+                return req_dt > now  
+        
+       
         return req_dt > now
+
     except:
         return False
         
-# ==================== PÁGINAS ====================
+        # ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
     with st.form("login_form"):
@@ -322,7 +332,7 @@ def page_ingress():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Service fuera del form para que se actualice correctamente
+    # Service fuera del form
     service = st.selectbox("Service", SERVICES_LIST, key="service_sel")
 
     with st.form("ingress_form", clear_on_submit=True):
@@ -354,10 +364,18 @@ def page_ingress():
         urgent = st.checkbox("🚨 Waiting Customer")
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+            
+            # ====================== VALIDACIÓN FECHA/HORA ======================
             if service not in NO_REQUIRED_SERVICES:
                 if not is_future_datetime(req_day, req_time):
-                    st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **posterior** a la hora actual.")
+                    now = datetime.now(ZoneInfo("America/Chicago"))
+                    if now.hour >= 21:
+                        st.error("❌ **Después de las 9:00 PM** no se pueden registrar vehículos para hoy.\nSolo se permite programar para **mañana** o fecha posterior.")
+                    else:
+                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **futura**.")
                     st.stop()
+            
+            # ====================== VALIDACIONES DE CAMPOS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()):
                 st.error("❌ This service requires both VIN and TAG"); st.stop()
             elif req_type == "vin" and not vin.strip():
@@ -365,6 +383,7 @@ def page_ingress():
             elif req_type == "tag" and not tag.strip():
                 st.error("❌ This service requires a TAG Number"); st.stop()
             
+            # ====================== GUARDAR EN BASE DE DATOS ======================
             dallas_tz = ZoneInfo("America/Chicago")
             dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %I:%M %p")
             check_val = (vin if req_type in ["vin", "both"] else tag).strip().upper()
@@ -1018,7 +1037,6 @@ def page_public_ingress_level0():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Service fuera del form
     service = st.selectbox("Service", SERVICES_LIST, key="guest_service")
 
     with st.form("guest_ingress_form", clear_on_submit=True):
@@ -1050,10 +1068,18 @@ def page_public_ingress_level0():
         urgent = st.checkbox("🚨 Waiting Customer")
 
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+            
+            # ====================== VALIDACIÓN FECHA/HORA ======================
             if service not in NO_REQUIRED_SERVICES:
                 if not is_future_datetime(req_day, req_time):
-                    st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser **posterior** a la hora actual.")
+                    now = datetime.now(ZoneInfo("America/Chicago"))
+                    if now.hour >= 21:
+                        st.error("❌ **Después de las 9:00 PM** no se pueden registrar vehículos para hoy.\nSolo se permite programar para **mañana** o fecha posterior.")
+                    else:
+                        st.error("❌ No se puede programar en el pasado.")
                     st.stop()
+            
+            # ====================== VALIDACIONES DE CAMPOS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()): 
                 st.error("❌ This service requires VIN and TAG"); st.stop()
             elif req_type == "vin" and not vin.strip(): 
@@ -1061,6 +1087,7 @@ def page_public_ingress_level0():
             elif req_type == "tag" and not tag.strip(): 
                 st.error("❌ This service requires TAG"); st.stop()
 
+            # ====================== GUARDAR ======================
             dallas_now = datetime.now(ZoneInfo("America/Chicago")).strftime("%Y-%m-%d %I:%M %p")
             with get_db() as conn:
                 c = conn.cursor()
