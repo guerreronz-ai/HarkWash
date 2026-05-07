@@ -1203,8 +1203,9 @@ def page_statistics():
         df_display = df_display.rename(columns={
             'service': 'Service',
             'status': 'Status',
-            'count': 'Count',
-            'avg_minutes': 'Avg Time'
+            'avg_minutes': 'Avg Time',
+            'count': 'Count'
+            
         })
 
         # Aplicar formato H:MM
