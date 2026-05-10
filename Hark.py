@@ -1259,33 +1259,33 @@ def page_statistics():
         st.plotly_chart(fig1, use_container_width=True)
 
         st.subheader("✅ Pending vs Delivered")
-            status_total = df.groupby('status')['count'].sum().reset_index()
+                status_total = df.groupby('status')['count'].sum().reset_index()
         
-            total = status_total['count'].sum()
+                total = status_total['count'].sum()
         
-            fig2 = px.pie(
-                status_total, 
-                names='status', 
-                values='count',
-                color_discrete_sequence=['#ff9800', '#4caf50'],
-                hole=0.1,  
-                title=f"Total: {total:,} vehicles"
-            )
+                fig2 = px.pie(
+                    status_total, 
+                    names='status', 
+                    values='count',
+                    color_discrete_sequence=['#ff9800', '#4caf50'],
+                    hole=0.1,  
+                    title=f"Total: {total:,} vehicles"
+                )
         
-            fig2.update_traces(
-                textposition='inside',
-                textinfo='percent+value',           
-                texttemplate='%{label}<br>%{percent:.1f}%<br>(%{value:,})',
-                hovertemplate='%{label}: %{value:,} vehicles<br>%{percent:.1f}%<extra></extra>'
-            )
+                fig2.update_traces(
+                    textposition='inside',
+                    textinfo='percent+value',           
+                    texttemplate='%{label}<br>%{percent:.1f}%<br>(%{value:,})',
+                    hovertemplate='%{label}: %{value:,} vehicles<br>%{percent:.1f}%<extra></extra>'
+                )
         
-            fig2.update_layout(
-                showlegend=True,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                title_x=0.5
-            )
+                fig2.update_layout(
+                    showlegend=True,
+                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+                    title_x=0.5
+                )
         
-            st.plotly_chart(fig2, use_container_width=True)
+                st.plotly_chart(fig2, use_container_width=True)
 
     except Exception as e:
         st.error(f"❌ Error generating statistics: {str(e)}")
