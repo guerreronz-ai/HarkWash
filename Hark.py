@@ -1124,12 +1124,13 @@ def page_public_ingress_level0():
 
 # ====================== STATISTICS ======================
 def page_statistics():
-    if st.session_state.level < 2:
-        st.error("🚫 Access denied. Only Supervisors and Administrators.")
+    if st.session_state.level != 3:   # ← Cambiado a solo Admins (level 3)
+        st.error("🚫 Access denied. Only Administrators can view Statistics.")
+        st.info("This section is available to Administrators only.")
         return
 
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
-
+    
     # ==================== FILTROS ====================
     with get_db() as conn:
         c = conn.cursor()
@@ -1308,8 +1309,8 @@ def main():
     menu_options = ["🚦 Ingress", "🏎️ Pending"]
     if st.session_state.level >= 2:
         menu_options.append("📊 Reports")
-        menu_options.append("📈 Statistics")
     if st.session_state.level == 3:
+        menu_options.append("📈 Statistics")
         menu_options.append("👤 Users")
     
     menu = st.sidebar.radio("Menu", menu_options)
