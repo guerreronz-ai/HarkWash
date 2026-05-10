@@ -1127,6 +1127,7 @@ def page_statistics():
     if st.session_state.level != 3:
         st.error("🚫 Access denied. Only Administrators can view this section.")
         return
+        
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
 
     # ==================== FILTROS ====================
@@ -1305,11 +1306,11 @@ def main():
         st.rerun()
 
     menu_options = [ "🚦 Ingress ",  "🏎️ Pending "]
-    if st.session_state.level >= 2:
+    if st.session_state.level  >= 2:
         menu_options.append( "📊 Reports ")
     if st.session_state.level == 3:
         menu_options.append( "📈 Statistics ")
-        menu_options.append( "👤 Users ")
+        menu_options.append( "👤 Users ")    
         
     menu = st.sidebar.radio("Menu", menu_options)
 
