@@ -1124,13 +1124,13 @@ def page_public_ingress_level0():
 
 # ====================== STATISTICS ======================
 def page_statistics():
-    if st.session_state.level != 3:   # ← Cambiado a solo Admins (level 3)
+    if st.session_state.level != 3:   # Solo Administradores (level 3)
         st.error("🚫 Access denied. Only Administrators can view Statistics.")
-        st.info("This section is available to Administrators only.")
+        st.info("Esta sección está disponible solo para Administradores.")
         return
 
     st.markdown("<h2>📈 Statistics & Charts</h2>", unsafe_allow_html=True)
-    
+
     # ==================== FILTROS ====================
     with get_db() as conn:
         c = conn.cursor()
@@ -1234,10 +1234,8 @@ def page_statistics():
             'status': 'Status',
             'avg_minutes': 'Avg Time',
             'count': 'Count'
-            
         })
 
-        # Aplicar formato H:MM
         df_display['Avg Time'] = df_display.apply(
             lambda x: minutes_to_hm(x['Avg Time']) 
             if x['Status'] == 'Delivered' else "-", axis=1
@@ -1258,37 +1256,38 @@ def page_statistics():
         fig1.update_traces(textposition='outside')
         st.plotly_chart(fig1, use_container_width=True)
 
+        # ==================== GRÁFICO PIE MEJORADO ====================
         st.subheader("✅ Pending vs Delivered")
-                status_total = df.groupby('status')['count'].sum().reset_index()
+        status_total = df.groupby('status')['count'].sum().reset_index()
         
-                total = status_total['count'].sum()
+        total_vehicles = status_total['count'].sum()
         
-                fig2 = px.pie(
-                    status_total, 
-                    names='status', 
-                    values='count',
-                    color_discrete_sequence=['#ff9800', '#4caf50'],
-                    hole=0.1,  
-                    title=f"Total: {total:,} vehicles"
-                )
+        fig2 = px.pie(
+            status_total, 
+            names='status', 
+            values='count',
+            color_discrete_sequence=['#ff9800', '#4caf50'],
+            hole=0.1,
+            title=f"Total: {total_vehicles:,} vehicles"
+        )
         
-                fig2.update_traces(
-                    textposition='inside',
-                    textinfo='percent+value',           
-                    texttemplate='%{label}<br>%{percent:.1f}%<br>(%{value:,})',
-                    hovertemplate='%{label}: %{value:,} vehicles<br>%{percent:.1f}%<extra></extra>'
-                )
+        fig2.update_traces(
+            textposition='inside',
+            textinfo='percent+value',
+            texttemplate='%{label}<br>%{percent:.1f}%<br>(%{value:,})',
+            hovertemplate='%{label}: %{value:,} vehicles<br>%{percent:.1f}%<extra></extra>'
+        )
         
-                fig2.update_layout(
-                    showlegend=True,
-                    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-                    title_x=0.5
-                )
+        fig2.update_layout(
+            showlegend=True,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
+            title_x=0.5
+        )
         
-                st.plotly_chart(fig2, use_container_width=True)
+        st.plotly_chart(fig2, use_container_width=True)
 
     except Exception as e:
-        st.error(f"❌ Error generating statistics: {str(e)}")
+        st.error(f"❌ Error generating statistics: {str(e)}")   
         
 # ==================== MAIN ====================
 def main():
