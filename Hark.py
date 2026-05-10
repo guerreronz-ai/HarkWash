@@ -1262,30 +1262,34 @@ def page_statistics():
         
         total_vehicles = status_total['count'].sum()
         
+        status_total['percentage'] = (status_total['count'] / total_vehicles * 100).round(1)
+        
         fig2 = px.pie(
             status_total, 
             names='status', 
             values='count',
             color_discrete_sequence=['#ff9800', '#4caf50'],
-            hole=0.1,
+            hole=0.08,
             title=f"Total: {total_vehicles:,} vehicles"
         )
         
         fig2.update_traces(
             textposition='inside',
-            textinfo='percent+value',
-            texttemplate='%{label}<br>%{percent:.1f}%<br>(%{value:,})',
-            hovertemplate='%{label}: %{value:,} vehicles<br>%{percent:.1f}%<extra></extra>'
+            texttemplate='%{label}<br>%{customdata:.1f}%<br>(%{value:,})',
+            customdata=status_total['percentage'],   # ← Usamos nuestro cálculo manual
+            hovertemplate='<b>%{label}</b><br>%{value:,} vehicles<br>%{customdata:.1f}%<extra></extra>',
+            pull=[0.08 if status == 'Pending' else 0 for status in status_total['status']]
         )
         
         fig2.update_layout(
             showlegend=True,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
-            title_x=0.5
+            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+            title_x=0.5,
+            height=520
         )
         
         st.plotly_chart(fig2, use_container_width=True)
-
+        
     except Exception as e:
         st.error(f"❌ Error generating statistics: {str(e)}")   
         
