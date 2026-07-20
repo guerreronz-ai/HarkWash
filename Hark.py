@@ -161,7 +161,7 @@ for h in range(24):
 
 SERVICES_LIST = [
     "Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line",
-    "Full Detail the customer", "Zaktek", "Sold Detail", "Sold use car", "Sold new car",
+    "Full Detail the customer", "Zaktek", "Sold Detail", "Sold used car", "Sold new car",
     
 ]
 SERVICE_FIELD_REQUIREMENTS = {
@@ -173,7 +173,7 @@ SERVICE_FIELD_REQUIREMENTS = {
     "Show Room": "vin",
     "Full Detail for line": "vin",
     "Sold Detail": "vin",
-    "Sold use car": "vin",
+    "Sold used car": "vin",
     "Sold new car": "vin"
 }
 
@@ -345,7 +345,7 @@ def page_ingress():
         
         with col2:
             model = st.text_input("Model", key="model_in", placeholder="")
-            responsible_name = st.text_input("Technical/Sales Man (Name)", key="res_name_in")
+            responsible_name = st.text_input("Technician/Salesperson (Name)", key="res_name_in")
         
         with col3:
             today = datetime.now().date()
