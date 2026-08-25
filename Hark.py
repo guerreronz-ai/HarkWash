@@ -430,7 +430,7 @@ def page_ingress():
             st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
             # Limpiamos el selector al hacer rerun
             if "service_sel" in st.session_state:
-                del st.session_state["service_sel"]
+                del st.session_state["service_sel"] = None
             st.rerun()
             
 def page_pending():
