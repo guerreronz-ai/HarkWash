@@ -636,14 +636,15 @@ def page_reports():
         if branch_id_filter is not None: 
             conditions.append("v.branch_id = %s"); params.append(branch_id_filter)
         
-        # ==================== CAMBIO CLAVE EN LA CONSULTA ====================
-        # Ahora se evalúa tanto la fecha de recepción como la fecha de entrega para incluir registros de otros días
+        # ==================== LÓGICA DE FECHAS CORREGIDA ====================
+        # Si el vehículo está PENDING, se incluye SIEMPRE (son los pendientes actuales acumulados).
+        # Si está DELIVERED, se filtra por su fecha de entrega o recepción según el periodo.
         if period == "Today": 
-            conditions.append("(v.reception_date::date = CURRENT_DATE OR v.delivery_date::date = CURRENT_DATE)")
+            conditions.append("(v.status = 'Pending' OR v.reception_date::date = CURRENT_DATE OR v.delivery_date::date = CURRENT_DATE)")
         elif period == "This Week": 
-            conditions.append("(v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE) OR v.delivery_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE))")
+            conditions.append("(v.status = 'Pending' OR v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE) OR v.delivery_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE))")
         elif period == "This Month": 
-            conditions.append("(DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE) OR DATE_TRUNC('month', v.delivery_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE))")
+            conditions.append("(v.status = 'Pending' OR DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE) OR DATE_TRUNC('month', v.delivery_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE))")
             
         if status_filter != "All": 
             conditions.append("v.status = %s"); params.append(status_filter)
@@ -655,7 +656,7 @@ def page_reports():
 
         if conditions: 
             query += " WHERE " + " AND ".join(conditions)
-        query += " ORDER BY v.reception_date DESC"
+        query += " ORDER BY v.status ASC, v.reception_date DESC"
 
         cursor.execute(query, params if params else None)
         rows = cursor.fetchall()
