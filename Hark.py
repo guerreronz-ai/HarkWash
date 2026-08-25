@@ -635,12 +635,16 @@ def page_reports():
         conditions, params = [], []
         if branch_id_filter is not None: 
             conditions.append("v.branch_id = %s"); params.append(branch_id_filter)
+        
+        # ==================== CAMBIO CLAVE EN LA CONSULTA ====================
+        # Ahora se evalúa tanto la fecha de recepción como la fecha de entrega para incluir registros de otros días
         if period == "Today": 
-            conditions.append("v.reception_date::date = CURRENT_DATE")
+            conditions.append("(v.reception_date::date = CURRENT_DATE OR v.delivery_date::date = CURRENT_DATE)")
         elif period == "This Week": 
-            conditions.append("v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE)")
+            conditions.append("(v.reception_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE) OR v.delivery_date::timestamp >= DATE_TRUNC('week', CURRENT_DATE))")
         elif period == "This Month": 
-            conditions.append("DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE)")
+            conditions.append("(DATE_TRUNC('month', v.reception_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE) OR DATE_TRUNC('month', v.delivery_date::timestamp) = DATE_TRUNC('month', CURRENT_DATE))")
+            
         if status_filter != "All": 
             conditions.append("v.status = %s"); params.append(status_filter)
         if service_filter != "All": 
@@ -691,7 +695,6 @@ def page_reports():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    # ... (el resto de la sección de Reverting Deliveries se mantiene igual)
     if st.session_state.level >= 2:
         st.divider()
         st.subheader("↩️ Reverting Deliveries (Error Correction)")
@@ -707,7 +710,7 @@ def page_reports():
             rev_conditions.append("v.branch_id = %s"); 
             rev_params.append(st.session_state.branch_id)
         if rev_conditions: 
-            rev_query += " WHERE " + " AND ".join(rev_conditions)  # Note: this might need adjustment if there are prior conditions, but kept as original
+            rev_query += " WHERE " + " AND ".join(rev_conditions)
         rev_query += " ORDER BY v.delivery_date DESC LIMIT 100"
 
         with get_db() as conn:
@@ -732,7 +735,7 @@ def page_reports():
                 st.rerun()
         else:
             st.info("📭 There are no recently delivered vehicles to reverse.")
-
+            
 def page_users():
     st.markdown("<h1>👤 User & Agency Management</h1>", unsafe_allow_html=True)
     if st.session_state.level != 3:
