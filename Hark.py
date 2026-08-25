@@ -332,13 +332,19 @@ def page_ingress():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Service fuera del form
-    service = st.selectbox("⚠️ Service (Select the required service)⚠️", SERVICES_LIST, key="service_sel")
+    # Service fuera del form con index=None y placeholder
+    service = st.selectbox(
+        "⚠️ Service (Select the required service)⚠️", 
+        SERVICES_LIST, 
+        index=None, 
+        placeholder="-- Select a service --",
+        key="service_sel"
+    )
 
     with st.form("ingress_form", clear_on_submit=True):
         col1, col2, col3 = st.columns(3)
         with col1:
-            req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both")
+            req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both") if service else "both"
             vin = st.text_input("VIN Number", key="vin_in")
             tag = st.text_input("TAG Number", key="tag_in")
             brand = st.text_input("Brand", key="brand_in", placeholder="")
@@ -351,13 +357,17 @@ def page_ingress():
             today = datetime.now().date()
             default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
             
-            if service in NO_REQUIRED_SERVICES:
+            if service and service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
                 st.info(f"ℹ️ **{service}** does not require delivery date or time.")
-            else:
+            elif service:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
                 req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
+            else:
+                st.info("ℹ️ Select a service to see date/time requirements.")
+                req_day = None
+                req_time = None
             
             notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
         
@@ -365,16 +375,20 @@ def page_ingress():
         
         if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
             
+            # ====================== VALIDACIÓN DE SERVICIO SELECCIONADO ======================
+            if not service:
+                st.error("❌ Please select a service before saving.")
+                st.stop()
+            
             # ====================== VALIDACIÓN FECHA/HORA ======================
             if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):   # ← Solo 2 argumentos
+                if not is_future_datetime(req_day, req_time):
                     now = datetime.now(ZoneInfo("America/Chicago"))
                     if now.hour >= 21:
                         st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
                     else:
                         st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
                     st.stop()
-            
             
             # ====================== VALIDACIONES DE CAMPOS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()):
@@ -414,7 +428,10 @@ def page_ingress():
                 ))
                 
             st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
-            st.rerun() 
+            # Limpiamos el selector al hacer rerun
+            if "service_sel" in st.session_state:
+                del st.session_state["service_sel"]
+            st.rerun()
             
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
