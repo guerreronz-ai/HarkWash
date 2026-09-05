@@ -321,14 +321,19 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
-   
-    # ==================== LOGO AL FINAL DE LA PÁGINA ====================
+   # ==================== LOGO AL FINAL DE LA PÁGINA ====================
     st.write("")
     st.write("")
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        st.image("hark_logo.png", width=180)
-  
+    
+    st.markdown(
+        """
+        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
+            <img src="app/static/hark_logo.png" width="220" style="display: block; margin: 0 auto;">
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
