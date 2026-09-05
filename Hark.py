@@ -332,15 +332,21 @@ def page_ingress():
     
     NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
 
-    # Limpia los campos solo cuando el guardado anterior fue exitoso
+    # Notificación flotante + Limpieza tras éxito
     if "ingress_success" in st.session_state and st.session_state.ingress_success:
         st.session_state.ingress_success = False
+        st.toast("🎉 ¡Vehículo guardado exitosamente!", icon="✅")
         st.session_state.vin_in = ""
         st.session_state.tag_in = ""
         st.session_state.brand_in = ""
         st.session_state.model_in = ""
         st.session_state.res_name_in = ""
         st.session_state.notes_in = ""
+
+    # Banner gigante de éxito persistente arriba
+    if "last_success_msg" in st.session_state and st.session_state.last_success_msg:
+        st.success(st.session_state.last_success_msg)
+        del st.session_state.last_success_msg
 
     service = st.selectbox(
         "⚠️ Service (Select the required service)⚠️", 
@@ -350,7 +356,6 @@ def page_ingress():
         key="service_sel"
     )
 
-    # Mantener clear_on_submit=False para no borrar en caso de error
     with st.form("ingress_form", clear_on_submit=False):
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -387,26 +392,34 @@ def page_ingress():
             
             # ====================== VALIDACIÓN DE SERVICIO SELECCIONADO ======================
             if not service:
-                st.error("❌ Please select a service before saving.")
+                st.toast("⚠️ ERROR: No seleccionaste ningún servicio", icon="❌")
+                st.error("### 🚨 ¡ATENCIÓN! DEBES SELECCIONAR UN SERVICIO ANTES DE GUARDAR 🚨\nPor favor, elige un servicio en el menú superior.")
                 st.stop()
             
             # ====================== VALIDACIÓN FECHA/HORA ======================
             if service not in NO_REQUIRED_SERVICES:
                 if not is_future_datetime(req_day, req_time):
                     now = datetime.now(ZoneInfo("America/Chicago"))
+                    st.toast("⚠️ ERROR EN LA FECHA/HORA SELECCIONADA", icon="⏰")
                     if now.hour >= 21:
-                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
+                        st.error("### 🚫 FECHA NO PERMITIDA\n**Después de las 9:00 PM** no se pueden registrar vehículos para hoy. Programa para **mañana** o una fecha posterior.")
                     else:
-                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
+                        st.error("### 🚫 FECHA NO PERMITIDA\nNo puedes programar entregas en el pasado. La fecha y hora requerida **debe ser futura**.")
                     st.stop()
             
             # ====================== VALIDACIONES DE CAMPOS ======================
             if req_type == "both" and (not vin.strip() or not tag.strip()):
-                st.error("❌ This service requires both VIN and TAG"); st.stop()
+                st.toast("⚠️ Daltan campos obligatorios (VIN y TAG)", icon="⚠️")
+                st.error("### ❌ ERROR DE CAPTURA: Este servicio requiere tanto el número VIN como el TAG.")
+                st.stop()
             elif req_type == "vin" and not vin.strip():
-                st.error("❌ This service requires a VIN Number"); st.stop()
+                st.toast("⚠️ Falta el número VIN", icon="⚠️")
+                st.error("### ❌ ERROR DE CAPTURA: Este servicio requiere obligatoriamente el número VIN.")
+                st.stop()
             elif req_type == "tag" and not tag.strip():
-                st.error("❌ This service requires a TAG Number"); st.stop()
+                st.toast("⚠️ Falta el número TAG", icon="⚠️")
+                st.error("### ❌ ERROR DE CAPTURA: Este servicio requiere obligatoriamente el número TAG.")
+                st.stop()
             
             # ====================== GUARDAR EN BASE DE DATOS ======================
             dallas_tz = ZoneInfo("America/Chicago")
@@ -419,7 +432,9 @@ def page_ingress():
                 c.execute(f"SELECT id FROM vehicles WHERE {check_col}=%s AND service=%s AND branch_id=%s AND status='Pending'", 
                           (check_val, service, st.session_state.branch_id))
                 if c.fetchone():
-                    st.error(f"❌ {check_val} is already registered for {service}"); st.stop()
+                    st.toast(f"⚠️ El vehículo {check_val} ya está registrado", icon="⛔")
+                    st.error(f"### ⛔ REGISTRO DUPLICADO\nEl vehículo con **{check_val}** ya se encuentra registrado y **PENDIENTE** para el servicio **{service}**.")
+                    st.stop()
                 
                 c.execute("""
                     INSERT INTO vehicles (vin_number, tag_number, brand, model, required_day, required_time, service, notes,
@@ -437,10 +452,9 @@ def page_ingress():
                     dallas_now, 'Pending', responsible_name.strip()
                 ))
                 
-            st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
-            
-            # Marcamos éxito para limpiar en la siguiente renderización
+            # Éxito
             st.session_state.ingress_success = True
+            st.session_state.last_success_msg = f"### 🎉 ¡VEHÍCULO REGISTRADO CORRECTAMENTE!\nGuardado con éxito en **{st.session_state.branch_name}**"
             
             if "service_sel" in st.session_state:
                 del st.session_state["service_sel"]
