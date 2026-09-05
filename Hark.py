@@ -325,15 +325,10 @@ def login_page():
     st.write("")
     st.write("")
     
-    st.markdown(
-        """
-        <div style="display: flex; justify-content: center; align-items: center; width: 100%;">
-            <img src="app/static/hark_logo.png" width="220" style="display: block; margin: 0 auto;">
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-    
+    _, col_center, _ = st.columns([2, 1, 2])
+    with col_center:
+        st.image("hark_logo.png", use_container_width=True)
+        
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
