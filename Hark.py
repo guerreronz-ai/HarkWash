@@ -457,7 +457,7 @@ def page_ingress():
                 
             # Success setup
             st.session_state.ingress_success = True
-            st.session_state.last_success_msg = f"### 🎉 VEHICLE SUCCESSFULLY REGISTERED!\nSaved successfully at **{st.session_state.branch_name}**"
+            st.session_state.last_success_msg = f"### ✅ VEHICLE SUCCESSFULLY REGISTERED!\nSaved successfully at **{st.session_state.branch_name}**"
             
             if "service_sel" in st.session_state:
                 del st.session_state["service_sel"]
