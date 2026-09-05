@@ -321,6 +321,13 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
+   
+    # ==================== LOGO AL FINAL DE LA PÁGINA ====================
+    st.write("")
+    st.write("")
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        st.image("hark_logo.png", width=180)
   
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
