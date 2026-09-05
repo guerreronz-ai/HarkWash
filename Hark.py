@@ -327,89 +327,99 @@ def login_page():
         st.rerun()
 
 def page_ingress():
-    st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
-    st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
+    st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)[cite: 1]
+    st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")[cite: 1]
     
-    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"]
+    NO_REQUIRED_SERVICES = ["Service Wash", "Loaner", "Photo", "Show Room", "Full Detail for line"][cite: 1]
 
-    # Service fuera del form con index=None y placeholder
+    # Inicialización de banderas de guardado exitoso
+    if "ingress_success" in st.session_state and st.session_state.ingress_success:
+        st.session_state.ingress_success = False
+        st.session_state.vin_in = ""
+        st.session_state.tag_in = ""
+        st.session_state.brand_in = ""
+        st.session_state.model_in = ""
+        st.session_state.res_name_in = ""
+        st.session_state.notes_in = ""
+
     service = st.selectbox(
         "⚠️ Service (Select the required service)⚠️", 
         SERVICES_LIST, 
         index=None, 
         placeholder="-- Select a service --",
         key="service_sel"
-    )
+    )[cite: 1]
 
-    with st.form("ingress_form", clear_on_submit=True):
-        col1, col2, col3 = st.columns(3)
+    # CAMBIO AQUÍ: clear_on_submit=False
+    with st.form("ingress_form", clear_on_submit=False):[cite: 1]
+        col1, col2, col3 = st.columns(3)[cite: 1]
         with col1:
-            req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both") if service else "both"
-            vin = st.text_input("VIN Number", key="vin_in")
-            tag = st.text_input("TAG Number", key="tag_in")
-            brand = st.text_input("Brand", key="brand_in", placeholder="")
+            req_type = SERVICE_FIELD_REQUIREMENTS.get(service, "both") if service else "both"[cite: 1]
+            vin = st.text_input("VIN Number", key="vin_in")[cite: 1]
+            tag = st.text_input("TAG Number", key="tag_in")[cite: 1]
+            brand = st.text_input("Brand", key="brand_in", placeholder="")[cite: 1]
         
         with col2:
-            model = st.text_input("Model", key="model_in", placeholder="")
-            responsible_name = st.text_input("Technician/Salesperson (Name)", key="res_name_in")
+            model = st.text_input("Model", key="model_in", placeholder="")[cite: 1]
+            responsible_name = st.text_input("Technician/Salesperson (Name)", key="res_name_in")[cite: 1]
         
         with col3:
-            today = datetime.now().date()
-            default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
+            today = datetime.now().date()[cite: 1]
+            default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)[cite: 1]
             
-            if service and service in NO_REQUIRED_SERVICES:
-                req_day = None
-                req_time = None
-                st.info(f"ℹ️ **{service}** does not require delivery date or time.")
-            elif service:
-                req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
-                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
+            if service and service in NO_REQUIRED_SERVICES:[cite: 1]
+                req_day = None[cite: 1]
+                req_time = None[cite: 1]
+                st.info(f"ℹ️ **{service}** does not require delivery date or time.")[cite: 1]
+            elif service:[cite: 1]
+                req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")[cite: 1]
+                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")[cite: 1]
             else:
-                st.info("ℹ️ Select a service to see date/time requirements.")
-                req_day = None
-                req_time = None
+                st.info("ℹ️ Select a service to see date/time requirements.")[cite: 1]
+                req_day = None[cite: 1]
+                req_time = None[cite: 1]
             
-            notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")
+            notes = st.text_area("Notes", placeholder="Observations...", key="notes_in")[cite: 1]
         
-        urgent = st.checkbox("🚨 Waiting Customer")
+        urgent = st.checkbox("🚨 Waiting Customer")[cite: 1]
         
-        if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):
+        if st.form_submit_button("💾 Save Vehicle", use_container_width=True, type="primary"):[cite: 1]
             
             # ====================== VALIDACIÓN DE SERVICIO SELECCIONADO ======================
-            if not service:
-                st.error("❌ Please select a service before saving.")
-                st.stop()
+            if not service:[cite: 1]
+                st.error("❌ Please select a service before saving.")[cite: 1]
+                st.stop()[cite: 1]
             
             # ====================== VALIDACIÓN FECHA/HORA ======================
-            if service not in NO_REQUIRED_SERVICES:
-                if not is_future_datetime(req_day, req_time):
-                    now = datetime.now(ZoneInfo("America/Chicago"))
-                    if now.hour >= 21:
-                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")
+            if service not in NO_REQUIRED_SERVICES:[cite: 1]
+                if not is_future_datetime(req_day, req_time):[cite: 1]
+                    now = datetime.now(ZoneInfo("America/Chicago"))[cite: 1]
+                    if now.hour >= 21:[cite: 1]
+                        st.error("❌ *Después de las 9:00 PM* no se pueden registrar vehículos para hoy.\nSolo se permite programar para *mañana* o fecha posterior.")[cite: 1]
                     else:
-                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")
-                    st.stop()
+                        st.error("❌ No se puede programar en el pasado.\nLa fecha y hora requerida debe ser futura.")[cite: 1]
+                    st.stop()[cite: 1]
             
             # ====================== VALIDACIONES DE CAMPOS ======================
-            if req_type == "both" and (not vin.strip() or not tag.strip()):
-                st.error("❌ This service requires both VIN and TAG"); st.stop()
-            elif req_type == "vin" and not vin.strip():
-                st.error("❌ This service requires a VIN Number"); st.stop()
-            elif req_type == "tag" and not tag.strip():
-                st.error("❌ This service requires a TAG Number"); st.stop()
+            if req_type == "both" and (not vin.strip() or not tag.strip()):[cite: 1]
+                st.error("❌ This service requires both VIN and TAG"); st.stop()[cite: 1]
+            elif req_type == "vin" and not vin.strip():[cite: 1]
+                st.error("❌ This service requires a VIN Number"); st.stop()[cite: 1]
+            elif req_type == "tag" and not tag.strip():[cite: 1]
+                st.error("❌ This service requires a TAG Number"); st.stop()[cite: 1]
             
             # ====================== GUARDAR EN BASE DE DATOS ======================
-            dallas_tz = ZoneInfo("America/Chicago")
-            dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %I:%M %p")
-            check_val = (vin if req_type in ["vin", "both"] else tag).strip().upper()
-            check_col = "vin_number" if req_type in ["vin", "both"] else "tag_number"
+            dallas_tz = ZoneInfo("America/Chicago")[cite: 1]
+            dallas_now = datetime.now(dallas_tz).strftime("%Y-%m-%d %I:%M %p")[cite: 1]
+            check_val = (vin if req_type in ["vin", "both"] else tag).strip().upper()[cite: 1]
+            check_col = "vin_number" if req_type in ["vin", "both"] else "tag_number"[cite: 1]
             
-            with get_db() as conn:
-                c = conn.cursor()
+            with get_db() as conn:[cite: 1]
+                c = conn.cursor()[cite: 1]
                 c.execute(f"SELECT id FROM vehicles WHERE {check_col}=%s AND service=%s AND branch_id=%s AND status='Pending'", 
-                          (check_val, service, st.session_state.branch_id))
-                if c.fetchone():
-                    st.error(f"❌ {check_val} is already registered for {service}"); st.stop()
+                          (check_val, service, st.session_state.branch_id))[cite: 1]
+                if c.fetchone():[cite: 1]
+                    st.error(f"❌ {check_val} is already registered for {service}"); st.stop()[cite: 1]
                 
                 c.execute("""
                     INSERT INTO vehicles (vin_number, tag_number, brand, model, required_day, required_time, service, notes,
@@ -425,13 +435,16 @@ def page_ingress():
                     service, notes.strip(), 1 if urgent else 0, 
                     st.session_state.branch_id,
                     dallas_now, 'Pending', responsible_name.strip()
-                ))
+                ))[cite: 1]
                 
-            st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")
-            # Reset selector de servicio
-            if "service_sel" in st.session_state:
-                del st.session_state["service_sel"]
-            st.rerun()
+            st.success(f"✅ Vehicle successfully registered in **{st.session_state.branch_name}**")[cite: 1]
+            
+            # Activar bandera para vaciar inputs SOLO cuando el guardado fue exitoso
+            st.session_state.ingress_success = True
+            
+            if "service_sel" in st.session_state:[cite: 1]
+                del st.session_state["service_sel"][cite: 1]
+            st.rerun()[cite: 1]
             
 def page_pending():
     st.markdown("<h2>🏎️ Pending Vehicles</h2>", unsafe_allow_html=True)
