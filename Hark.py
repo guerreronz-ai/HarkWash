@@ -321,11 +321,7 @@ def login_page():
                     st.error("❌ Invalid credentials")
 
     st.divider()
-    st.markdown("### Do you need to bring in a vehicle??")
-    if st.button("🚦 Start without login", use_container_width=True, type="secondary"):
-        st.session_state.guest_mode = True
-        st.rerun()
-
+  
 def page_ingress():
     st.markdown("<h2>🚦 Vehicle Ingress</h2>", unsafe_allow_html=True)
     st.info(f"📍 Agency: {st.session_state.branch_name} | 👤 {st.session_state.full_name}")
