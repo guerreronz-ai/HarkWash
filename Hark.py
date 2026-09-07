@@ -287,6 +287,55 @@ def is_future_datetime(req_day, req_time):
     except:
         return False
         
+import easyocr
+import re
+from PIL import Image
+import numpy as np
+
+@st.cache_resource
+def load_ocr_reader():
+    return easyocr.Reader(['en'], gpu=False)
+
+def extract_data_from_tag(image_bytes):
+    reader = load_ocr_reader()
+    img = Image.open(image_bytes)
+    img_np = np.array(img)
+    
+    results = reader.readtext(img_np, detail=0)
+    full_text = " ".join(results)
+    
+    extracted = {"tag": "", "brand": "", "model": "", "year": "", "color": ""}
+    
+    # Busca TAG o Stock (ej: TL006519)
+    tag_match = re.search(r'\b[A-Z0-9]{5,10}\b', full_text)
+    if tag_match:
+        extracted["tag"] = tag_match.group(0)
+        
+    # Busca Año (4 dígitos que inician con 20)
+    year_match = re.search(r'\b20[2-9][0-9]\b', full_text)
+    if year_match:
+        extracted["year"] = year_match.group(0)
+        
+    # Busca Marcas
+    for brand in ["Acura", "BMW", "Subaru", "Audi", "Ford", "Chevrolet", "Honda", "Toyota"]:
+        if re.search(brand, full_text, re.IGNORECASE):
+            extracted["brand"] = brand
+            break
+            
+    # Busca Modelos
+    for model in ["RDX", "MDX", "TLX", "Q5", "Q7", "X3", "X5", "Outback", "Forester"]:
+        if re.search(model, full_text, re.IGNORECASE):
+            extracted["model"] = model
+            break
+            
+    # Busca Colores
+    for color in ["White", "Black", "Silver", "Gray", "Red", "Blue"]:
+        if re.search(color, full_text, re.IGNORECASE):
+            extracted["color"] = color
+            break
+
+    return extracted
+    
 # ==================== PÁGINAS ====================
 def login_page():
     st.markdown("<h1 style='text-align:center; color:#00d4ff;'>🦈 HARK Login</h1>", unsafe_allow_html=True)
@@ -351,6 +400,32 @@ def page_ingress():
         st.success(st.session_state.last_success_msg)
         del st.session_state.last_success_msg
 
+# ==================== SCAN KEY TAG (OCR) ====================
+    with st.expander("📷 **Scan Key Tag / Auto-Fill from Photo**", expanded=False):
+        uploaded_file = st.file_uploader("Upload or take a picture of the Key Tag", type=["jpg", "jpeg", "png"], key="uploader_ingress")
+        
+        if uploaded_file is not None:
+            st.image(uploaded_file, caption="Uploaded Key Tag", width=220)
+            if st.button("⚡ Extract Data from Photo", type="secondary", key="btn_ocr_ingress"):
+                with st.spinner("Reading tag image..."):
+                    try:
+                        data = extract_data_from_tag(uploaded_file)
+                        
+                        if data["tag"]: st.session_state.tag_in = data["tag"]
+                        if data["brand"]: st.session_state.brand_in = data["brand"]
+                        if data["model"]: st.session_state.model_in = data["model"]
+                        
+                        notes_extra = []
+                        if data["year"]: notes_extra.append(f"Year: {data['year']}")
+                        if data["color"]: notes_extra.append(f"Color: {data['color']}")
+                        if notes_extra:
+                            st.session_state.notes_in = ", ".join(notes_extra)
+                        
+                        st.toast("✅ Data extracted successfully!", icon="📸")
+                        st.success("Data loaded into the form below! Check and adjust if necessary.")
+                    except Exception as e:
+                        st.error(f"❌ Error scanning image: {e}")
+    
     service = st.selectbox(
         "⚠️ Service (Select the required service)⚠️", 
         SERVICES_LIST, 
