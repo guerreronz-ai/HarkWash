@@ -779,12 +779,12 @@ def page_reports():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-   if st.session_state.level >= 2:
-        st.divider()
-        st.subheader("↩️ Reverting Deliveries (Error Correction)")
-        st.caption("⚠️ This action will return the vehicle to 'Pending' and clear the delivery date.")
-        
-        rev_query = """
+        if st.session_state.level >= 2:
+            st.divider()
+            st.subheader("↩️ Reverting Deliveries (Error Correction)")
+            st.caption("⚠️ This action will return the vehicle to 'Pending' and clear the delivery date.")
+            
+         rev_query = """
             SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, v.service, 
                    v.delivery_date, v.handled_by, b.name as agency
             FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id
