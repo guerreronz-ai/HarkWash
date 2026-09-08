@@ -3,5 +3,3 @@ psycopg2-binary
 pandas
 openpyxl
 plotly
-easyocr
-pillow
