@@ -779,22 +779,24 @@ def page_reports():
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-    if st.session_state.level >= 2:
+   if st.session_state.level >= 2:
         st.divider()
         st.subheader("↩️ Reverting Deliveries (Error Correction)")
         st.caption("⚠️ This action will return the vehicle to 'Pending' and clear the delivery date.")
+        
         rev_query = """
             SELECT v.id, v.tag_number, v.vin_number, v.brand, v.model, v.service, 
                    v.delivery_date, v.handled_by, b.name as agency
             FROM vehicles v LEFT JOIN branches b ON v.branch_id = b.id
             WHERE v.status = 'Delivered' AND v.delivery_date::timestamp >= NOW() - INTERVAL '24 hours'
         """
-        rev_conditions, rev_params = [], []
-        if st.session_state.level == 2: 
-            rev_conditions.append("v.branch_id = %s"); 
+        rev_params = []
+        
+        # SI ES NIVEL 2 (SUPERVISOR), SE FILTRA POR SU SUCURSAL USANDO "AND" EN LUGAR DE "WHERE"
+        if st.session_state.level == 2:
+            rev_query += " AND v.branch_id = %s"
             rev_params.append(st.session_state.branch_id)
-        if rev_conditions: 
-            rev_query += " WHERE " + " AND ".join(rev_conditions)
+            
         rev_query += " ORDER BY v.delivery_date DESC LIMIT 100"
 
         with get_db() as conn:
