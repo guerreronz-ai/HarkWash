@@ -372,16 +372,36 @@ def page_ingress():
             responsible_name = st.text_input("Technician/Salesperson (Name)", key="res_name_in")
         
         with col3:
-            today = datetime.now().date()
-            default_day = today if datetime.now().hour < 20 else today + timedelta(days=1)
+            dallas_tz = ZoneInfo("America/Chicago")
+            now_dallas = datetime.now(dallas_tz)
             
+            # Hora objetivo: actual + 30 minutos
+            target_time = now_dallas + timedelta(minutes=30)
+            today = now_dallas.date()
+            
+            # Si al sumar 30 min se pasa de las 9:00 PM (21:00), pasa para mañana a las 8:00 AM
+            if target_time.hour >= 21:
+                default_day = today + timedelta(days=1)
+                target_time_check = dt_time(8, 0)
+            else:
+                default_day = target_time.date()
+                target_time_check = target_time.time()
+
+            # Buscar el índice más cercano en la lista TIME_12H_OPTIONS
+            default_index = 0
+            for i, time_option in enumerate(TIME_12H_OPTIONS):
+                dt_option = datetime.strptime(time_option, "%I:%M %p").time()
+                if dt_option >= target_time_check:
+                    default_index = i
+                    break
+
             if service and service in NO_REQUIRED_SERVICES:
                 req_day = None
                 req_time = None
                 st.info(f"ℹ️ **{service}** does not require delivery date or time.")
             elif service:
                 req_day = st.date_input("Required Day", value=default_day, min_value=today, key="day_in")
-                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=36, key="time_in")
+                req_time = st.selectbox("Required Time (AM/PM)", TIME_12H_OPTIONS, index=default_index, key="time_in")
             else:
                 st.info("ℹ️ Select a service to see date/time requirements.")
                 req_day = None
